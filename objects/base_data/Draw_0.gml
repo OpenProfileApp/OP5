@@ -14,6 +14,7 @@ draw_set_valign(fa_center);
 draw_set_font(open_sans);
 
 if selected == true {
+	///var _draw_text = string_repeat("*", string_length(text));
 	draw_text(x - 250, y, text + "|");
 }
 else draw_text(x - 250, y, text);
