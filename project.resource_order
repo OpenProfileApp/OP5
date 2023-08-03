@@ -1,0 +1,25 @@
+{
+  "FolderOrderSettings": [
+    {"name":"Development","order":3,"path":"folders/Development.yy",},
+    {"name":"OpenProfile 5","order":2,"path":"folders/OpenProfile 5.yy",},
+    {"name":"Core Functions","order":2,"path":"folders/OpenProfile 5/Core Functions.yy",},
+    {"name":"UI","order":3,"path":"folders/OpenProfile 5/UI.yy",},
+    {"name":"Font","order":1,"path":"folders/OpenProfile 5/UI/Font.yy",},
+  ],
+  "ResourceOrderSettings": [
+    {"name":"box_1","order":4,"path":"objects/box_1/box_1.yy",},
+    {"name":"box_6","order":10,"path":"objects/box_6/box_6.yy",},
+    {"name":"box_3","order":7,"path":"objects/box_3/box_3.yy",},
+    {"name":"obj_form","order":1,"path":"objects/obj_form/obj_form.yy",},
+    {"name":"box_2","order":6,"path":"objects/box_2/box_2.yy",},
+    {"name":"box_4","order":8,"path":"objects/box_4/box_4.yy",},
+    {"name":"save_and_load","order":1,"path":"objects/save_and_load/save_and_load.yy",},
+    {"name":"obj_textbox","order":2,"path":"objects/obj_textbox/obj_textbox.yy",},
+    {"name":"spr_textbox","order":5,"path":"sprites/spr_textbox/spr_textbox.yy",},
+    {"name":"data","order":6,"path":"objects/data/data.yy",},
+    {"name":"spr_button","order":4,"path":"sprites/spr_button/spr_button.yy",},
+    {"name":"box_5","order":9,"path":"objects/box_5/box_5.yy",},
+    {"name":"new_room","order":5,"path":"rooms/new_room/new_room.yy",},
+    {"name":"rm_new","order":3,"path":"rooms/rm_new/rm_new.yy",},
+  ],
+}
