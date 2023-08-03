@@ -4,12 +4,12 @@ if keyboard_check(vk_control) and keyboard_check_pressed(ord("S")) {
 	var file;
 	var savetext =
 		{
-			text1 : t1.text,
-			text2 : t2.text,
-			text3 : t3.text,
-			text4 : t4.text,
-			text5 : t5.text,
-			text6 : t6.text,
+			text1 : box_1.text,
+			text2 : box_2.text,
+			text3 : box_3.text,
+			text4 : box_4.text,
+			text5 : box_5.text,
+			text6 : box_6.text,
 		}
 		array_push(_saveData, savetext);
 	
@@ -40,12 +40,12 @@ if keyboard_check(vk_control) and keyboard_check_pressed(ord("O")) {
 		while array_length(_loadData) > 0
 		{
 			var _loadText = array_pop(_loadData);
-			t1.text = _loadText.text1;
-			t2.text = _loadText.text2;
-			t3.text = _loadText.text3;
-			t4.text = _loadText.text4;
-			t5.text = _loadText.text5;
-			t6.text = _loadText.text6;
+			box_1.text = _loadText.text1;
+			box_2.text = _loadText.text2;
+			box_3.text = _loadText.text3;
+			box_4.text = _loadText.text4;
+			box_5.text = _loadText.text5;
+			box_6.text = _loadText.text6;
 			
 			show_debug_message("Loaded!");
 		}
