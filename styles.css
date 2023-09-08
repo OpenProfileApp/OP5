@@ -68,6 +68,12 @@ body {
   z-index: 5;
 }
 
+#left::selection {
+  background-color: #a72726;
+  border-radius: 5px;
+  color: #ffffff;
+}
+
 .right {
   background-color: #a72726;
   position: fixed;
@@ -249,7 +255,6 @@ body {
   color: #ffffff;
   font-family: "Open Sans";
   font-size: 7px;
-  font-weight: 900;
   text-align: center;
   display: flex;
   z-index: 7;
@@ -258,7 +263,7 @@ body {
 }
 
 .label_text::selection {
-  background-color: #bd9335;
+  background-color: #1b1f28;
   color: #ffffff;
   border-radius: 5px;
 }
@@ -491,6 +496,12 @@ textarea {
   }
 }
 
+#seperator::selection {
+  background-color: #1b1f28;
+  border-radius: 5px;
+  color: #ffffff;
+}
+
 .group:hover .input_text {
   border-radius: 0px 5px 0px 5px;
   border: 2px solid #1b1f28;
@@ -708,31 +719,5 @@ textarea::-webkit-scrollbar-track {
   100% {
     opacity: 1;
     scale: 1;
-  }
-}
-
-.confetti-container {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-.confetti {
-  position: absolute;
-  width: 10px;
-  height: 12px;
-  scale: 0.5;
-  background-color: #a72726; /* Change to your desired confetti color */
-  border-radius: 50%;
-  animation: confetti-fall 2s ease-out infinite;
-}
-
-@keyframes confetti-fall {
-  0% {
-      transform: translateY(0) rotate(0deg);
-  }
-  100% {
-      transform: translateY(100vh) rotate(360deg);
   }
 }

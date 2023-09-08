@@ -16,8 +16,8 @@
 </head>
 <body>
   <div class="left">
-    <div class="label_text" style="width: 375px; font-size: 45px; transform: translateY(375px)translateX(40px);">Coming soon</div>
-    <div class="label_text" style="width: 375px; font-size: 25px; transform: translateY(435px)translateX(60px);">(management panel)</div>
+    <div class="label_text" id="left" style="width: 375px; font-size: 45px; transform: translateY(375px)translateX(40px);">Coming soon</div>
+    <div class="label_text" id="left" style="width: 375px; font-size: 25px; transform: translateY(435px)translateX(60px);">(management panel)</div>
   </div>
 
   <div class="center">
@@ -30,10 +30,17 @@
           <!-- /////////////////////////\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
           <div class="group" id="page_author_group" style="top: 0px; left: -1px;">
             <div class="label_tab" id="page_author_label_tab" style="width: 51px; top: 29px; border-radius: 0px 0px 5px 0px">
-              <div class="label_text" id="page_author_label_text" style="width: 46px; top: 1px;">Page Author</div>
+              <div class="label_text" id="page_author_label_text" style="width: 46px; top: 1.25px;">Page Author</div>
             </div>
             <div><input type="text" class="input_text" id="page_author_1" style="width: 175px; border-radius: 5px 0px 5px 0px;" autocomplete="off" autocorrect="off" placeholder="Who is the page's author?"></div>
             <script src="scripts/emojis/page1/page_author_1_emojis.js"></script>
+          </div>
+
+          <!-- /////////////////////////\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+          <!-- //////////////|| NAME INFORMATION ||\\\\\\\\\\\\\\\ -->
+          <!-- /////////////////////////\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
+          <div class="group" id="name_information_group" style="top: 0px; left: 249px;">
+            <div><input type="text" class="input_text" id="seperator" style="width: 175px; height: 28px; top: 9px; border-radius: 0px 0px 5px 5px; justify-content: center; text-align: center; font-size: 14px; background-color: #1b1f28; color: #ffffff; border-color: #1b1f28;" autocomplete="off" autocorrect="off" value="Name Information" tabindex="-1" readonly></div>
           </div>
 
           <!-- /////////////////////////\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
@@ -41,7 +48,7 @@
           <!-- /////////////////////////\\\\\\\\\\\\\\\\\\\\\\\\\\ -->
           <div class="group" id="written_date_group" style="top: 0px; left: 498px;">
             <div class="label_tab" id="written_date_label_tab" style="width: 52px; top: 29px; left: 132px; border-radius: 0px 0px 0px 5px">
-              <div class="label_text" id="written_date_label_text" style="width: 46px;">Written Date</div>
+              <div class="label_text" id="written_date_label_text" style="width: 46px; top: 1.25px;">Written Date</div>
             </div>
             <div><input type="text" class="input_text" id="written_date_1" style="width: 175px; border-radius: 0px 5px 0px 5px; text-align: right;" autocomplete="off" autocorrect="off" placeholder="When was this page written?"></div>
           </div>
@@ -483,11 +490,11 @@
 
   <div class="popup" id="popup_0">
     <div class="popup_text">
-      <p>Saving and loading has been disabled for this preview version. All will be lost on reload!</p>
-      <br>
-      <p style="font-size: 14px;">(click anywhere to dismiss)</p>
-      <br>
-      <p style="font-size: 12px;">💡 Did you know there is currently over 2,300 lines of active code in the OP5?</p>
+      <p id="seperator">Saving and loading has been disabled for this preview version. All will be lost on reload!</p>
+      <br id="seperator">
+      <p style="font-size: 14px;" id="seperator">(click anywhere to dismiss)</p>
+      <br id="seperator">
+      <p style="font-size: 12px;" id="seperator">💡 Did you know there is currently over 2,300 lines of active code in the OP5?</p>
     </div>
   </div>
   
