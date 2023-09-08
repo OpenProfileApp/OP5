@@ -1,9 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
-  const textInput = document.getElementById('alter_ego');
-  const writtenDateInput = document.getElementById('written_date');
-  const lastModified = document.getElementById('alter_ego_time');
-  const targetElement = document.getElementById('alter_ego'); // Change 'target_element' to the actual ID of the element you want to modify
-  const consoleLog = document.getElementById('console_log');
+  const textInput = document.getElementById('first_name');
+  const writtenDateInput = document.getElementById('written_date_1');
+  const lastModified = document.getElementById('first_name_time');
+  const targetElement = document.getElementById('first_name_history_tab'); // Change 'target_element' to the actual ID of the element you want to modify
   const currentDate = new Date();
   let previousInputValueOld = '';
   let previousInputValueNew = '';
@@ -21,19 +20,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const formattedDate = currentDate.toLocaleDateString('en-US', {
       year: 'numeric',
       month: '2-digit',
-      day: 'numeric',
+      day: '2-digit',
     });
 
     const loggedDate = new Date(writtenDateInput.value);
     const isLoggedDateEqualToLocal = isDateEqualToLocal(loggedDate);
 
     if (!isLoggedDateEqualToLocal && enteredText !== previousInputValueOld) {
-      lastModified.textContent = `Last modified: ${formattedDate}`;
+      setTimeout(() => {
+        lastModified.textContent = `${formattedDate}`;
+    }, 150);
       previousInputValueNew = enteredText; // Update the new value
-      targetElement.style.borderRadius = '0px 5px 0px 5px'; // Modify the border radius as needed
+      lastModified.style.opacity = '1';
+      targetElement.style.height = '15px';
+      targetElement.style.width = '59px';
+      targetElement.style.left = '5px';
     } else {
       lastModified.textContent = '';
-      targetElement.style.borderRadius = '0px 5px 5px 5px'; // Reset the border radius
+      lastModified.style.opacity = '0';
+      targetElement.style.height = '11px';
+      targetElement.style.width = '15px';
+      targetElement.style.left = '49px';
     }
 
     updateConsoleLog(enteredText);
