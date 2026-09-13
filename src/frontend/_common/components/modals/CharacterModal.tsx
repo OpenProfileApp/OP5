@@ -300,11 +300,14 @@ const CharacterModal = forwardRef<CharacterModalRef>((_, ref) => {
                                         ) : (
                                             data.tags.map((tag) => (
                                                 <Link
-                                                    className="rounded-full bg-base-100 text-xs px-3 py-1 border border-base-300 hover:underline"
                                                     to={`/browse/${encodeURIComponent(tag)}`}
                                                     onClick={handleClose}
                                                 >
-                                                    <span>#{tag}</span>
+                                                    <div className="flex gap-2 items-center justify-center rounded-full bg-base-100 text-xs px-3 py-1 border border-base-300">
+                                                        <span className="font-nerdfont leading-none"></span>
+
+                                                        <span className="mb-0.5 hover:underline">{tag}</span>
+                                                    </div>
                                                 </Link>
                                             ))
                                         )}
