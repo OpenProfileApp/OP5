@@ -92,6 +92,7 @@ export default function UserProfile() {
     
     const [isContextMenuOpen, setIsContextMenuOpen] = useState<boolean>(false);
 
+    const [refetchData, setRefetchData] = useState<boolean>(false);
     const [data, setData] = useState<GetUserItemType>();
     const [isLoading, setIsLoading] = useState(true);
 
@@ -257,7 +258,19 @@ export default function UserProfile() {
                 }
 
                 const json = await res.json();
-                const data: GetUserItemType = json.items[0];
+                const data: GetUserItemType = json?.items?.[0];
+
+                if (!data && window.config.isProduction) {
+                    navigate("/404", { replace: true });
+                    return;
+                }
+
+                const primaryUsername = data?.usernames?.find(u => u.isPrimary)?.username;
+
+                if (primaryUsername && id !== primaryUsername) {
+                    navigate(`/user/${primaryUsername}`, { replace: true });
+                    return;
+                }
                 
                 setData(data);
 
@@ -273,7 +286,7 @@ export default function UserProfile() {
                         }
                 );
 
-                setPrimaryUsername(data?.usernames?.find(u => u.isPrimary)?.username);
+                setPrimaryUsername(primaryUsername);
                 setAbout(data.markdown);
                 setShowConfetti(isBirthdayToday(data?.birthdate) || false);
                 setIsSensitive(data?.isSensitive);
@@ -287,11 +300,12 @@ export default function UserProfile() {
                 console.error(err);
             } finally {
                 setIsLoading(false);
+                setRefetchData(false);
             }
         };
 
         if (id) fetchUser();
-    }, [id, navigate]);
+    }, [id, navigate, refetchData]);
 
      useEffect(() => {
         if (!isLoading && !areCharactersLoading && !arePinsLoading) {
@@ -444,7 +458,7 @@ export default function UserProfile() {
                 title={data?.displayName || primaryUsername || data?.id}
                 description={data?.about || t("defaults.noUserAbout")}
                 keywords={data?.tags?.toString()}
-                image={`${cdnBaseUrl}${data?.avatar || window.config.metadata.assets.icon}`}
+                image={`${data?.avatar ? data?.avatar : `${cdnBaseUrl}${window.config.metadata.assets.icon}`}`}
                 author={primaryUsername || data?.id}
             />
 
@@ -542,6 +556,19 @@ export default function UserProfile() {
             )}
 
             <div style={{backgroundColor: data?.isAuraEnabled ? hexToRgba(data?.auraPrimary, 0.05) : "transparent"}}>
+                { data?.status && ( 
+                    <div className="relative top-5 left-42 w-317">
+                        <div className="absolute glass bg-[#00000085] rounded-full h-4 w-4 top-6 left-25.5 z-1" />
+                        <div className="absolute glass bg-[#00000085] rounded-full h-3 w-3 top-10 left-23 z-1" />
+
+                        <div className="absolute glass bg-[#00000085] rounded-lg p-3 left-30.5 z-1">
+                            <div className="text-white text-sm line-clamp-1">
+                                {data?.status}
+                            </div>
+                        </div>
+                    </div>
+                )}
+                    
                 <div className="hero">
                     <Banner
                         className="mask-graident absolute top-[64px] w-full object-cover h-96"
@@ -555,7 +582,7 @@ export default function UserProfile() {
                         <div className="flex flex-col gap-4">
 
                             <div 
-                                className="aura-effect bg-dots bg-base-100 rounded-lg z-1 p-6 h-fit" 
+                                className="aura-effect bg-base-100 rounded-lg z-1 p-6 h-fit" 
                                 style={auraStyle}
                             >
                                 {contextMenuBuilder && contextMenuBuilder.items([
@@ -600,8 +627,9 @@ export default function UserProfile() {
 
                                 <div className="relative flex flex-col items-center py-2 z-2">
                                     {(
-                                        data?.id === "5719552362357773" ||
-                                        data?.id === "5019646586243236"
+                                        data?.fanflair === "true" &&
+                                        (data?.id === "5719552362357773" ||
+                                        data?.id === "5019646586243236")
                                     ) && (
                                         // DEVELOPER NEEDED: Disable id override and add fanflairs
                                         <div 
@@ -650,23 +678,21 @@ export default function UserProfile() {
                                     )}
 
                                     <div className="relative group pointer-events-auto">
-                                        {!data?.animatedAvatar && (
                                             <Avatar
                                                 className="rounded-full h-32 w-32 object-cover"
                                                 id={"avatar"}
                                                 src={data?.avatar ? `${cdnBaseUrl}${data?.avatar}` : `${cdnBaseUrl}${window.config.metadata.assets.noImage}`}
                                                 alt={t("words.avatar")}
                                             />
-                                        )}
 
-                                        {data?.animatedAvatar && (
-                                            <Avatar
-                                                className="absolute rounded-full top-0 h-32 w-32 object-cover"
-                                                id={"avatar"}
-                                                src={data?.animatedAvatar}
-                                                alt={t("words.avatar")}
-                                            />
-                                        )}
+                                            {data?.animatedAvatar && (
+                                                <Avatar
+                                                    className="absolute rounded-full top-0 h-32 w-32 object-cover"
+                                                    id={"avatar"}
+                                                    src={`${cdnBaseUrl}${data?.animatedAvatar}`}
+                                                    alt={t("words.avatar")}
+                                                />
+                                            )}
 
                                         <Presence 
                                             data={data}
@@ -696,8 +722,10 @@ export default function UserProfile() {
                                             {window.session.userId === data?.id && (
                                                 <button
                                                     className={buttonClassList}
-                                                    onClick={() => {
-                                                        editUserProfileModal.open(data)
+                                                    onClick={async () => {
+                                                        await editUserProfileModal.open(data, () => {
+                                                            setRefetchData(true);
+                                                        });
                                                     }}
                                                 >
                                                     <span className={buttonTextClassList}>
@@ -866,7 +894,6 @@ export default function UserProfile() {
 
                                     <div className="flex justify-center gap-2 px-2 text-xs font-normal flex-wrap">
                                         {[...data.links]
-                                            .sort((a, b) => (a.position ?? Number.MAX_SAFE_INTEGER) - (b.position ?? Number.MAX_SAFE_INTEGER))
                                             .map((link) => (
                                                 <ExternalLink
                                                     key={link.url}
