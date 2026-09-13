@@ -2,16 +2,29 @@ import type { Request, Response } from "express";
 
 import { AdvancedError } from "kage-library";
 
-import { assertBearer } from "../../_common/asserts/bearer.assert.js";
 import createAuditLogService from "../services/createAuditLog.service.js";
 import { log } from "../instances.js";
 import { i18n } from "../../_common/instances.js";
+import getEnv from "../../../_common/helpers/getEnv.js";
 
 export const createAuditLogController = async (req: Request, res: Response) => {
     try {
         const { type, action, source, target, changes, origin } = req.body;
 
-        await assertBearer(req);
+        const authHeader = req.headers.authorization;
+
+        let isAuthorized = false;
+
+        if (authHeader?.startsWith("ApiSecret ")) {
+            isAuthorized = authHeader.split(" ")[1] === getEnv("API_SECRET");
+        }
+
+        if (!isAuthorized) {
+            throw new AdvancedError({
+                code: 401,
+                message: i18n.t("responses.unauthorized")
+            })
+        }
 
         createAuditLogService(
             type,

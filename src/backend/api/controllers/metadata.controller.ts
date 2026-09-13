@@ -2,7 +2,6 @@ import type { Request, Response } from "express";
 
 import { AdvancedError } from "kage-library";
 
-import { assertBearer } from "../../_common/asserts/bearer.assert.js";
 import { assertNotNull } from "../../../_common/asserts/notNull.assert.js";
 import { log, wc } from "../instances.js";
 import { i18n } from "../../_common/instances.js";
@@ -11,7 +10,6 @@ export const metadataController = async (req: Request, res: Response) => {
     try {
         const { url } = req.query;
 
-        await assertBearer(req);
         assertNotNull(url);
 
         res.status(200).json({

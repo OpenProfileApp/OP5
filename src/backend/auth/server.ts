@@ -60,8 +60,8 @@ router.use("/session", rateLimitMiddleware(240), sessionRoute); // No validateSe
 router.use("/switch", validateSessionMiddleware, rateLimitMiddleware(10), switchRoutes);
 router.use("/login", validateSessionMiddleware, rateLimitMiddleware(10), loginRoutes);
 router.use("/logout", validateSessionMiddleware, rateLimitMiddleware(10), logoutRoute);
-router.use("/connect", validateSessionMiddleware, rateLimitMiddleware(120), connectRoute);
-router.use("/disconnect", validateSessionMiddleware, rateLimitMiddleware(120), disconnectRoute);
+router.use("/connect", rateLimitMiddleware(120), connectRoute);
+router.use("/disconnect", rateLimitMiddleware(120), disconnectRoute);
 // router.use("/mfa", validateSessionMiddleware, rateLimitMiddleware(20), mfaRoutes);
 
 /* 
