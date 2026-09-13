@@ -115,7 +115,16 @@ export default async function uploadFile({
     let finalExt = type.ext;
     let finalMime = type.mime;
 
-    if (type.mime.startsWith("image")) {
+    if (type.mime === "image/gif") {
+        if (fileBuffer.length > config.limits.uploadSize) {
+            throw new AdvancedError({
+                code: 400,
+                message: i18n.t("responses.fileTooLarge")
+            });
+        }
+        finalExt = "gif";
+        finalMime = "image/gif";
+    } else if (type.mime.startsWith("image")) {
         const imageInstance = sharp(fileBuffer, { failOn: "none", limitInputPixels: false });
         const metadata = await imageInstance.metadata();
 
