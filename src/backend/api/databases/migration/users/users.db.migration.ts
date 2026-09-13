@@ -76,9 +76,8 @@ db.users.transaction(async q => {
                 visibility,
                 sendMessages,
                 lastActive,
-                presenceVisibility,
                 createdDate
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 d.score,
                 d.id,
@@ -105,7 +104,6 @@ db.users.transaction(async q => {
                 d.visibility || "public",
                 d.messages,
                 d.last_active,
-                d.last_active_visibility,
                 DateTime.fromSQL(d.created_date as string, { zone: "utc" }).toISO()
             ]
         );

@@ -8,6 +8,7 @@ import ReportModal, { ReportModalRef } from "../components/modals/ReportModal.js
 import ShareModal, { ShareModalRef } from "../components/modals/ShareModal.js";
 import CharacterModal, { CharacterModalRef } from "../components/modals/CharacterModal.js";
 import EditUserProfileModal, { EditUserProfileModalRef } from "../../main/components/modals/EditUserProfileModal.js";
+import { GetUserItemType } from "../../../_common/types/user.type.js";
 
 interface ModalContextType {
     notificationsModal: {
@@ -39,7 +40,7 @@ interface ModalContextType {
         close: () => void;
     };
     editUserProfileModal: {
-        open: (...args: Parameters<EditUserProfileModalRef["open"]>) => void;
+        open: (data: GetUserItemType, onSave?: (updatedData: GetUserItemType) => void) => Promise<GetUserItemType | null | undefined>;
         close: () => void;
     };
 }
@@ -115,8 +116,8 @@ export function ModalProvider({ children }: { children: ReactNode }) {
                 },
             },
             editUserProfileModal: {
-                open: (...args: Parameters<EditUserProfileModalRef["open"]>) => {
-                    editUserProfileModalRef.current?.open(...args);
+                open: async (data: GetUserItemType, onSave?: (updatedData: GetUserItemType) => void) => {
+                    return editUserProfileModalRef.current?.open(data, onSave);
                 },
                 close: () => {
                     editUserProfileModalRef.current?.close();

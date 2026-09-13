@@ -5,7 +5,6 @@ import { assertDbSuccess } from "../../../_common/asserts/dbSuccess.assert.js";
 import { GetUserItemType, GetUserType } from "../../../_common/types/user.type.js";
 import { GetFromType } from "../../../_common/types/getFrom.type.js";
 import { SortByType } from "../../../_common/types/sortBy.type.js";
-import { GetLinkType } from "../../../_common/types/link.type.js";
 import { parseJson } from "../../_common/helpers/parseJson.js";
 import { db } from "../databases/db.js";
 import getInterestsService from "./getInterests.service.js";
@@ -13,6 +12,7 @@ import { InteractionNameType } from "../../../_common/types/interaction.type.js"
 import AssetPermissionsService from "./assetPermissions.service.js";
 import { UsernameType } from "../../../_common/types/username.type.js";
 import ExperimentsService from "../../_common/services/experiments.service.js";
+import { GetLinkType, LinkType } from "../../../_common/types/link.type.js";
 
 type Props = {
     idOrUsername?: string;
@@ -334,8 +334,12 @@ export default function getUsersService({
                                 'isPrimary', u.isPrimary
                             )
                         )
-                        FROM usernames u
-                        WHERE u.userId = users.id
+                        FROM (
+                            SELECT username, isPrimary
+                            FROM usernames
+                            WHERE userId = users.id
+                            ORDER BY isPrimary DESC
+                        ) u
                     ),
                     json('[]')
                 ) AS usernames,
@@ -482,33 +486,27 @@ export default function getUsersService({
 
     if (includeLinks && userIds.length > 0) {
         const placeholders = userIds.map(() => "?").join(",");
-        const linksResult = db.links.query<{
-            id: string;
-            url: string;
-            name: string;
-            previewText: string | null;
-            visibility: string;
-            date: string;
-        }>(
-            `SELECT id, url, name, previewText, visibility, date 
-             FROM links 
-             WHERE id IN (${placeholders})`,
+        const linksResult = db.links.query<LinkType>(
+            `SELECT * FROM links WHERE assetId IN (${placeholders}) ORDER BY position ASC`,
             userIds
         );
 
         assertDbSuccess(linksResult);
 
         linksByUserId = linksResult.rows.reduce((acc, link) => {
-            if (!acc[link.id]) {
-                acc[link.id] = [];
+            if (!acc[link.assetId]) {
+                acc[link.assetId] = [];
             }
-            acc[link.id].push({
+            
+            acc[link.assetId].push({
                 url: link.url,
-                name: link.name,
+                label: link.label,
                 previewText: link.previewText,
                 visibility: link.visibility,
+                position: link.position,
                 date: link.date
             });
+
             return acc;
         }, {} as Record<string, GetLinkType[]>);
     }
@@ -622,7 +620,6 @@ export default function getUsersService({
                 delete formattedRow.foundedDateVisibility;
                 delete formattedRow.flags;
                 delete formattedRow.presence;
-                delete formattedRow.presenceVisibility;
                 delete formattedRow.lastActive;
                 delete formattedRow.sendMessages;
                 delete formattedRow.isDeveloper;
@@ -631,11 +628,6 @@ export default function getUsersService({
                 if (!canViewField(formattedRow.birthdateVisibility)) {
                     delete formattedRow.birthdate;
                     delete formattedRow.birthdateVisibility;
-                }
-
-                if (!canViewField(formattedRow.presenceVisibility)) {
-                    delete formattedRow.presence;
-                    delete formattedRow.presenceVisibility;
                 }
 
                 if (!canViewField(formattedRow.foundedDateVisibility)) {

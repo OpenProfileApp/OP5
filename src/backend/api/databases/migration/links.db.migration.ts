@@ -80,22 +80,18 @@ db.links.transaction(q => {
         if (d.verified) continue;
 
         const rawValue = (d.id || d.text || "").toString();
-        const { url, previewText } = normalizeLink(rawValue, d.name as string);
+        const { url } = normalizeLink(rawValue, d.name as string);
 
         const insertResult = q(
             `INSERT INTO links (
                 assetId,
                 url,
-                label,
-                previewText,
                 visibility,
                 date
-            ) VALUES (?, ?, ?, ?, ?, ?)`,
+            ) VALUES (?, ?, ?, ?)`,
             [
                 d.user,
                 url,
-                d.name,
-                previewText,
                 d.visibility || "public",
                 DateTime.fromSQL(d.date as string, { zone: "utc" }).toISO()
             ]

@@ -11,15 +11,18 @@ import { useObjectURL } from "../../../_common/hooks/useObjectURL.hook.js";
 import ColorInput from "../../../_common/components/ColorInput.js";
 import { TypeableDropdownInput } from "../../../_common/components/TypeableDropdownInput.js";
 import UserCard from "../UserCard.js";
-import { cdnBaseUrl } from "../../../_common/scripts/domains.js";
+import { apiBaseUrl, cdnBaseUrl } from "../../../_common/scripts/domains.js";
 import ExternalLink from "../../../_common/components/ExternalLink.js";
 import { GetLinkType } from "../../../../_common/types/link.type.js";
 import { VisibilityType } from "../../../../_common/types/visibility.type.js";
-import MarkdownRenderer from "../../../_common/components/markdown/Renderer.js";
 import { Tooltip } from "../../../_common/components/Tooltip.js";
+import { toast } from "../../../_common/scripts/toast.js";
 
 export interface EditUserProfileModalRef {
-    open: (data: GetUserItemType) => void;
+    open: (
+        incomingData: GetUserItemType,
+        onSave?: (updatedData: GetUserItemType) => void
+    ) => Promise<GetUserItemType | null>;
     close: () => void;
 }
 
@@ -205,15 +208,23 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
     const { t, ready: isTranslationReady } = useTranslation();
     const dialogRef = useRef<HTMLDialogElement | null>(null);
 
+    const onSaveRef = useRef<((updatedData: GetUserItemType) => void) | null>(null);
+
     const [data, setData] = useState<GetUserItemType | null>(null);
     const [initialData, setInitialData] = useState<GetUserItemType | null>(null);
+
+    const [isSaving, setIsSaving] = useState<boolean>(false);
 
     const [activeTab, setActiveTab] = useState("appearance");
 
     const [avatar, setAvatar] = useState<File | null>(null);
+    const [animatedAvatar, setAnimatedAvatar] = useState<File | null>(null);
+
     const [banner, setBanner] = useState<File | null>(null);
 
     const avatarUrl = useObjectURL(avatar);
+    const animatedAvatarUrl = useObjectURL(animatedAvatar);
+
     const bannerUrl = useObjectURL(banner);
 
     const resetState = () => {
@@ -221,11 +232,19 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
         setInitialData(null);
         setActiveTab("appearance");
         setAvatar(null);
+        setAnimatedAvatar(null);
         setBanner(null);
     };
 
     useImperativeHandle(ref, () => ({
-        open: (incomingData: GetUserItemType) => {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        open: (
+            incomingData: GetUserItemType,
+            onSave?: (updatedData: GetUserItemType) => void
+        ) => {
+            onSaveRef.current = onSave || null;
+
             const cloned = structuredClone(incomingData);
 
             if (cloned.usernames) {
@@ -390,18 +409,164 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
         handleFieldChange("links", updated);
     };
 
-    const handleSave = () => {
-        handleClose();
+    const currentTags: string[] = Array.isArray(data?.tags)
+        ? data?.tags
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        : typeof data?.tags === "string" && data?.tags?.trim().length > 0
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        ? data.tags?.split(",").map((t: string) => t.trim()).filter(Boolean)
+        : [];
+
+    const [tagInput, setTagInput] = useState("");
+    const tagRegex = /^[a-z-]+$/;
+
+    const handleAddTag = () => {
+        const trimmed = tagInput.trim().toLowerCase();
+        if (!trimmed) return;
+
+        if (trimmed.length < 3 || trimmed.length > 24) {
+            toast.show(
+                "Tags must be between 3 and 24 characters", 
+                { type: "error" }
+            );
+            return;
+        }
+
+        if (!tagRegex.test(trimmed)) {
+            toast.show(
+                "Tags can only contain a-z and dashes", 
+                { type: "error" }
+            );
+            return;
+        }
+
+        if (currentTags.includes(trimmed)) {
+            toast.show(
+                "Tag already added", 
+                { type: "error" }
+            );
+            return;
+        }
+
+        if (currentTags.length >= 10) {
+            toast.show(
+                "You have reached the maximum amount (10) of tags.", 
+                { type: "error" }
+            );
+            return;
+        }
+
+        handleFieldChange("tags", [...currentTags, trimmed]);
+
+        setTagInput("");
+    };
+
+    const handleDeleteTag = (indexToDelete: number) => {
+        const updated = currentTags.filter((_, i) => i !== indexToDelete);
+
+        handleFieldChange("tags", updated);
+    };
+
+    function omitId<T>(obj: T): T {
+        if (obj === null || typeof obj !== "object") {
+            return obj;
+        }
+
+        if (Array.isArray(obj)) {
+            return obj.map(omitId) as unknown as T;
+        }
+
+        const cleanObj: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(obj)) {
+            if (key !== "_id") {
+                cleanObj[key] = omitId(value);
+            }
+        }
+        return cleanObj as T;
+    }
+
+    function getChangedData(
+        data: GetUserItemType,
+        initialData: GetUserItemType
+    ) {
+        const result: Partial<GetUserItemType> = {};
+
+        const cleanData = omitId(data);
+        const cleanInitial = omitId(initialData);
+
+        for (const k in cleanData) {
+            const key = k as keyof GetUserItemType;
+
+            if (JSON.stringify(cleanData[key]) !== JSON.stringify(cleanInitial?.[key])) {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                result[key] = cleanData[key];
+            }
+        }
+
+        return result;
+    }
+
+    const handleSave = async () => {
+        setIsSaving(true);
+
+        try {
+            const response = await fetch(`${apiBaseUrl}/v3/users/update/${data?.id}`, {
+                credentials: "include", 
+                method: "POST", 
+                headers: { "Content-Type": "application/json" }, 
+                body: JSON.stringify({ 
+                    data: getChangedData(
+                        data as GetUserItemType, 
+                        initialData as GetUserItemType
+                    ) 
+                })
+            });
+
+            const responseData = await response.json();
+
+            if (response.ok) {
+                if (onSaveRef.current) {
+                    onSaveRef?.current(data as GetUserItemType);
+                }
+
+                handleClose();
+
+                setIsSaving(false);
+
+                toast.show(
+                    t("defaults.savedYourProfile"),
+                    { type: "success" }
+                );
+            } else {
+                setIsSaving(false);
+
+                toast.show(
+                    t("defaults.failedToSaveProfile"),
+                    {
+                        subtext: `${responseData.id || ""}${responseData.id ? ": " : ""}${responseData.message}`,
+                        type: "error",
+                    }
+                );
+            }
+        } catch (error) {
+            console.error(`Failed to save profile:`, error);
+        }
     };
 
     if (!isTranslationReady || !data) return null;
 
     const currentAvatar = avatar !== null ? avatarUrl ?? undefined : data.avatar;
+    const currentAnimatedAvatar = avatar !== null ? animatedAvatarUrl ?? undefined : data.animatedAvatar;
+
     const currentBanner = banner !== null ? bannerUrl ?? undefined : data.banner;
 
     const previewData: GetUserItemType = {
         ...data,
         avatar: currentAvatar,
+        animatedAvatar: currentAnimatedAvatar,
         banner: currentBanner,
     };
 
@@ -510,16 +675,29 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                             </label>
 
                                             <ImageInput
-                                                value={avatar}
+                                                value={animatedAvatar || avatar}
                                                 defaultUrl={avatarInputDefaultUrl}
-                                                onChange={(file) => {
-                                                    setAvatar(file);
-                                                    handleFieldChange(
-                                                        "avatar",
-                                                        (file ? avatarUrl : null) as GetUserItemType["avatar"]
-                                                    );
+                                                animatedDefaultUrl={data.animatedAvatar ? `${cdnBaseUrl}${data.animatedAvatar}` : null}
+                                                onChange={(file, base64Url, staticPreviewFile, staticPreviewBase64) => {
+                                                    if (file && file.size > 1 * 1024 * 1024) {
+                                                        toast.show("File is too large (1 MB maximum)", { type: "error" });
+                                                        return;
+                                                    }
+                                                    
+                                                    const isGif = file?.type === "image/gif";
+
+                                                    setAvatar(staticPreviewFile || file);
+                                                    setAnimatedAvatar(isGif ? file : null);
+
+                                                    const staticBase64 = staticPreviewBase64 || base64Url;
+                                                    const animatedBase64 = isGif ? base64Url : null;
+
+                                                    handleFieldChange("avatar", staticBase64 as GetUserItemType["avatar"]);
+                                                    handleFieldChange("animatedAvatar", animatedBase64 as GetUserItemType["animatedAvatar"]);
                                                 }}
-                                                accept="image/png, image/jpeg, image/jpg, image/gif"
+                                                accept={`image/png, image/jpeg, image/jpg${
+                                                    window.session.permissions.array.includes("PREMIUM_ACCESS") ? ", image/gif" : ""
+                                                }`}
                                                 aspectRatio={1}
                                                 height="32"
                                                 width="32"
@@ -535,11 +713,18 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                             <ImageInput
                                                 value={banner}
                                                 defaultUrl={bannerInputDefaultUrl}
-                                                onChange={(file) => {
+                                                onChange={(file, base64Url) => {
+                                                    
+                                                    if (file && file.size > 1 * 1024 * 1024) {
+                                                        toast.show("File is too large (1 MB maximum)", { type: "error" });
+                                                        return;
+                                                    }
+
                                                     setBanner(file);
+
                                                     handleFieldChange(
                                                         "banner",
-                                                        (file ? bannerUrl : null) as GetUserItemType["banner"]
+                                                        base64Url as GetUserItemType["banner"]
                                                     );
                                                 }}
                                                 accept="image/png, image/jpeg, image/jpg"
@@ -553,7 +738,7 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
 
                                     <div className="flex flex-col gap-1 mt-1">
                                         <label className="label">
-                                            Display Name
+                                            Display Name ({(data.displayName ?? "").length}/32)
                                         </label>
 
                                         <input
@@ -565,6 +750,7 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                                 "What is your display name?"
                                             }
                                             value={data.displayName ?? ""}
+                                            maxLength={32}
                                             onChange={(e) =>
                                                 handleFieldChange(
                                                     "displayName",
@@ -574,13 +760,22 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                         />
                                     </div>
 
+                                    <div className="divider text-xs my-0 mt-3">
+                                        <span 
+                                            className="flex gap-2 tooltip" 
+                                            data-tip="Premium Feature"
+                                        >
+                                            Activity
+                                        </span>
+                                    </div>
+
                                     <div className="flex flex-col gap-1 mt-1">
                                         <label className="label flex gap-2">
                                             Presence
 
                                             <Tooltip content={(
                                                 <div className="flex flex-col gap-2 tooltip-content bg-base-200 text-xs text-left border border-base-300 rounded shadow-2xl">
-                                                    <div><strong>Online:</strong> Standard online mode that automatically updates to idle if inactive</div>
+                                                    <div><strong>Online:</strong> Standard online mode that automatically updates to idle if inactive.</div>
                                                     <div><strong>Do Not Disturb:</strong> You will not be notified of notifications. They will still appear in your notifications page.</div>
                                                     <div><strong>Offline:</strong> You appear offline to everyone.</div>
                                                 </div>
@@ -591,12 +786,12 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
 
                                         <TypeableDropdownInput
                                             value={
-                                                data.presence.charAt(0).toUpperCase() + data.presence.slice(1).toLowerCase()
+                                                data.presence === "dnd" ? "Do Not Disturb" : data.presence.charAt(0).toUpperCase() + data.presence.slice(1).toLowerCase()
                                             }
                                             options={[
                                                 { id: "online", name: "Online" },
                                                 { id: "dnd", name: "Do Not Disturb" },
-                                                { id: "hidden", name: "Offline" }
+                                                { id: "offline", name: "Offline" }
                                             ]}
                                             placeholder="Select Option"
                                             typeable={false}
@@ -605,6 +800,25 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                                     "presence",
                                                     option as PresenceType
                                                 )
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="flex flex-col gap-1 mt-1">
+                                        <label className="label">
+                                            Status ({(data.status ?? "").length}/160)
+                                        </label>
+
+                                        <textarea
+                                            className="textarea h-20 w-full resize-none"
+                                            placeholder={
+                                                initialData?.status ||
+                                                "What are you thinking?"
+                                            }
+                                            value={data.status ?? ""}
+                                            maxLength={160}
+                                            onChange={(e) =>
+                                                handleFieldChange("status", e.target.value)
                                             }
                                         />
                                     </div>
@@ -682,6 +896,40 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                             />
                                         </div>
                                     </div>
+
+                                    <div className="divider text-xs my-0 mt-3">
+                                        <span 
+                                            className="flex gap-2 tooltip" 
+                                            data-tip="Experimental Feature"
+                                        >
+                                            Overrides
+                                            <span className="font-nerdfont leading-none text-sm text-nightly"></span>
+                                        </span>
+                                    </div>
+
+                                    <div className="flex flex-col gap-1 mt-1">
+                                        <label className="label">
+                                            Dragonights Fanflair
+                                        </label>
+
+                                        <TypeableDropdownInput
+                                            value={
+                                                data.fanflair === "true" ? "true" : "false"
+                                            }
+                                            options={[
+                                                { id: "true", name: "Enabled" },
+                                                { id: "false", name: "Disabled" },
+                                            ]}
+                                            placeholder="Select Option"
+                                            typeable={false}
+                                            onChange={(option) =>
+                                                handleFieldChange(
+                                                    "fanflair",
+                                                    option as string
+                                                )
+                                            }
+                                        />
+                                    </div>
                                 </fieldset>
                             )}
 
@@ -704,29 +952,60 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                     </div>
 
                                     <div className="flex flex-col gap-1 mt-1">
-                                        <label className="label">Tags</label>
+                                        <label className="label">Tags ({`${currentTags.length}/10`})</label>
 
-                                        <input
-                                            type="text"
-                                            className="input w-full"
-                                            placeholder={
-                                                initialData?.tags?.join(", ") ||
-                                                "tag1, tag2, tag3"
-                                            }
-                                            value={
-                                                Array.isArray(data.tags)
-                                                    ? data.tags.join(", ")
-                                                    : data.tags ?? ""
-                                            }
-                                            onChange={(e) =>
-                                                handleFieldChange(
-                                                    "tags",
-                                                    e.target.value
-                                                        .split(",")
-                                                        .map((s) => s.trim()) as unknown as GetUserItemType["tags"]
-                                                )
-                                            }
-                                        />
+                                        <div className={`flex flex-wrap gap-1 ${currentTags.length > 0 ? "mb-1" : ""}`}>
+                                            {currentTags.map((tag, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="flex gap-2 items-center justify-center rounded-full bg-base-100 text-xs px-3 py-1 border border-base-300"
+                                                >
+                                                    <span className="font-nerdfont leading-none"></span>
+
+                                                    <span className="mb-0.5">{tag}</span>
+
+                                                    <button
+                                                        type="button"
+                                                        className="cursor-pointer text-error text-xs font-nerdfont leading-none"
+                                                        onClick={() => handleDeleteTag(index)}
+                                                    >
+                                                        
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {currentTags.length < 10 && (
+                                            <div className="flex items-center gap-2">
+                                                <div className="relative flex-1">
+                                                    <span className="absolute z-1 font-nerdfont leading-none left-3 top-1/2 -translate-y-1/2 text-sub select-none">
+                                                        
+                                                    </span>
+                                                    <input
+                                                        type="text"
+                                                        className="input w-full pl-7 text-sm"
+                                                        placeholder="new-author"
+                                                        value={tagInput}
+                                                        maxLength={24}
+                                                        onChange={(e) => setTagInput(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") {
+                                                                e.preventDefault();
+                                                                handleAddTag();
+                                                            }
+                                                        }}
+                                                    />
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-square btn-secondary text-base font-nerdfont cursor-pointer"
+                                                    onClick={handleAddTag}
+                                                >
+                                                    
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </fieldset>
                             )}
@@ -922,34 +1201,6 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                         />
                                     </div>
 
-                                    
-
-                                    <div className="flex flex-col gap-1 mt-1">
-                                        <label className="label">
-                                            presenceVisibility
-                                        </label>
-
-                                        <TypeableDropdownInput
-                                            value={
-                                                data.isAuraEnabled ? "true" : "false"
-                                            }
-                                            options={[
-                                                { id: "true", name: "Enabled" },
-                                                { id: "false", name: "Disabled" },
-                                            ]}
-                                            placeholder="Select Option"
-                                            typeable={false}
-                                            onChange={(option) =>
-                                                handleFieldChange(
-                                                    "isAuraEnabled",
-                                                    option === "true"
-                                                )
-                                            }
-                                        />
-                                    </div>
-
-                                    
-
                                     <div className="divider text-xs my-0 mt-3">
                                         <span className="flex gap-2">
                                             Social
@@ -1053,27 +1304,38 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-3 flex-row w-full mt-2 pt-4 z-10 shrink-0">
-                    <button
-                        type="button"
-                        className="btn btn-neutral flex-1"
-                        onClick={handleClose}
-                    >
-                        {t("words.Close")}
-                    </button>
+                {(() => {
+                    const hasChanges = Object.keys(getChangedData(data, initialData as GetUserItemType)).length > 0;
 
-                    <button
-                        type="button"
-                        className="btn btn-accent flex-3"
-                        onClick={handleSave}
-                    >
-                        {t("words.Save")}
-                    </button>
-                </div>
+                    return (
+                        <div className="flex items-center gap-2 sm:gap-3 flex-row w-full mt-2 pt-4 z-10 shrink-0">
+                            <button
+                                type="button"
+                                className="btn btn-neutral flex-1"
+                                onClick={handleClose}
+                            >
+                                {t("words.Close")}
+                            </button>
+
+                            <button
+                                type="button"
+                                className={`btn flex-3 flex items-center justify-center border rounded gap-2 transition-colors ${
+                                    !hasChanges 
+                                        ? "bg-base-200 border-base-300 cursor-not-allowed opacity-60" 
+                                        : "bg-success border-success text-white cursor-pointer"
+                                }`}
+                                onClick={handleSave}
+                                disabled={isSaving || !hasChanges}
+                            >
+                                <span className={`font-nerdfont leading-none ${isSaving ? "loading w-6 h-6" : ""}`}>
+                                    {!isSaving && (!hasChanges ? "" : "󰆓")}
+                                </span>
+                                {!isSaving && (hasChanges ? t("words.Save") : t("words.Saved"))}
+                            </button>
+                        </div>
+                    );
+                })()}
             </div>
-            <form method="dialog" className="modal-backdrop">
-                <button type="submit">close</button>
-            </form>
         </dialog>
     );
 });

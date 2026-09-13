@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS users (
     sendMessages TEXT NOT NULL DEFAULT 'default',
     sendComments TEXT NOT NULL DEFAULT 'default',
     presence TEXT NOT NULL DEFAULT 'offline',
-    presenceVisibility TEXT NOT NULL DEFAULT 'default',
+    isOnline INTEGER NOT NULL DEFAULT 0,
     lastActive TEXT,
     createdDate TEXT DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
