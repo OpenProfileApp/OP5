@@ -106,7 +106,7 @@ export default function UserCard({
 
     return (
         <div
-            className={`aura-effect user-card relative p-4 shadow-sm ${!isPreview ? "cursor-pointer" : ""} transition-all duration-100 ${
+            className={`group aura-effect user-card relative p-4 shadow-sm ${!isPreview ? "cursor-pointer" : ""} transition-all duration-100 ${
                 isHidden ? "grayscale opacity-50" : "grayscale-0"
             }`}
             style={auraStyle}
@@ -266,7 +266,7 @@ export default function UserCard({
                 ].filter(Boolean))
             }
 
-            <div className="absolute inset-0 group pointer-events-none">
+            <div className="absolute inset-0 pointer-events-none">
                 <Banner
                     className={bannerClassList}
                     src={
@@ -278,10 +278,11 @@ export default function UserCard({
                 />
             </div>
 
-           <div className="absolute z-2 pointer-events-none h-26 w-26">
+            <div className="group/avatar absolute z-2 pointer-events-none h-26 w-26">
                 {(
-                    data?.id === "5719552362357773" ||
-                    data?.id === "5019646586243236"
+                    data?.fanflair === "true" &&
+                    (data?.id === "5719552362357773" ||
+                    data?.id === "5019646586243236")
                 ) && (
                     // DEVELOPER NEEDED: Disable id override and add fanflairs
                     <img
@@ -292,7 +293,7 @@ export default function UserCard({
                 )}
 
                 <img
-                    className="absolute rounded-full h-21 w-21 object-cover"
+                    className="absolute rounded-full h-21 w-21 object-cover transition-opacity duration-200"
                     src={
                         data.avatar?.startsWith("blob:")
                             ? data.avatar
@@ -303,7 +304,7 @@ export default function UserCard({
 
                 {data.animatedAvatar && (
                     <img
-                        className="absolute rounded-full h-21 w-21 object-cover opacity-0 group-hover:opacity-100"
+                        className="absolute rounded-full h-21 w-21 object-cover transition-opacity duration-200 opacity-0 group-hover:opacity-100 group-hover/avatar:opacity-100"
                         src={
                             data.animatedAvatar?.startsWith("blob:")
                                 ? data.animatedAvatar
@@ -394,15 +395,11 @@ export default function UserCard({
 
                 <div className="text-xs line-clamp-3 my-2">
                     {(() => {
-                        if (data.visibility === "public") {
-                            return data.about || t("defaults.noUserAbout");
-                        }
-                        
-                        if (data.visibility === "friends" && !data.about) {
+                        if (data.visibility === "friends" && (!data.about || window.session.userId !== data.id)) {
                             return `${t("words.Add")} ${data.displayName || primaryUsername || data.id} ${t("defaults.noFriendView")}`;
                         }
 
-                        return null;
+                        return data.about || t("defaults.noUserAbout");
                     })()}
                 </div>
             </div>
