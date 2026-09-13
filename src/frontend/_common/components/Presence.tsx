@@ -19,7 +19,7 @@ export default function Presence({ data, largeIcons = false }: Props) {
         data?.id ? state.presenceMap[data.id] : undefined
     );
 
-    const currentPresence = livePresence?.presence || data?.presence;
+    const currentPresence = data?.isOnline ? livePresence?.presence || data?.presence : "offline";
     const currentLastActive = livePresence?.lastActive || data?.lastActive;
 
     useEffect(() => {

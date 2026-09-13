@@ -38,7 +38,7 @@ export const updateUserPresence = async (req: Request, res: Response) => {
         }
 
         const userResult = db.users.query(
-            `SELECT presence FROM users WHERE id = ?`,
+            `SELECT presence, isOnline FROM users WHERE id = ?`,
             [userId]
         );
 
@@ -53,14 +53,36 @@ export const updateUserPresence = async (req: Request, res: Response) => {
             });
         }
 
-        if (currentUser.presence === "dnd" || currentUser.presence === "hidden") {
+        if (currentUser.presence === "offline" || type === "offline") {
+            if (currentUser.isOnline) {
+                const result = db.users.query(
+                    "UPDATE users SET isOnline = 0 WHERE id = ?",
+                    [userId]
+                );
+
+                assertDbSuccess(result);
+            }
+
+            return res.status(200).json({
+                ok: false,
+            });
+        }
+
+        if (currentUser.presence === "dnd") {
+            const result = db.users.query(
+                `UPDATE users SET isOnline = 1, lastActive = ? WHERE id = ?`,
+                [DateTime.now().toUTC().toISO(), userId]
+            );
+
+            assertDbSuccess(result);
+
             return res.status(200).json({
                 ok: false
             });
         }
 
         const result = db.users.query(
-            `UPDATE users SET presence = ?, lastActive = ? WHERE id = ?`,
+            `UPDATE users SET presence = ?, isOnline = 1, lastActive = ? WHERE id = ?`,
             [type, DateTime.now().toUTC().toISO(), userId]
         );
 

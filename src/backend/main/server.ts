@@ -127,7 +127,7 @@ wss.on("connection", async (ws: WebSocket, req: IncomingMessage) => {
     ws.userId = response.userId;
 
     const presenceResponse: { ok: boolean } = await wc.callAPI(
-        `https://${config.domains.api}/v3/users/presence/online/${response.userId}`,
+        `https://${config.domains.api}/v3/presence/online/${response.userId}`,
         { auth: `ApiSecret ${getEnv("API_SECRET")}` }
     );
 
@@ -176,7 +176,7 @@ wss.on("connection", async (ws: WebSocket, req: IncomingMessage) => {
         );
 
         await wc.callAPI(
-            `https://${config.domains.api}/v3/users/presence/offline/${ws.userId}`,
+            `https://${config.domains.api}/v3/presence/offline/${ws.userId}`,
             { auth: `ApiSecret ${getEnv("API_SECRET")}` }
         );
 

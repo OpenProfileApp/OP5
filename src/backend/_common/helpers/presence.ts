@@ -12,7 +12,7 @@ function clearIdleTimer(sessionId: string) {
 
 async function updatePresence(userId: string, status: "online" | "idle"): Promise<boolean> {
     const response: { ok: boolean } = await wc.callAPI(
-        `https://${config.domains.api}/v3/users/presence/${status}/${userId}`,
+        `https://${config.domains.api}/v3/presence/${status}/${userId}`,
         { auth: `ApiSecret ${getEnv("API_SECRET")}` }
     );
 

@@ -27,6 +27,7 @@ import notificationRoutes from "./routes/notification.routes.js";
 import advertisementRoute from "./routes/advertisement.route.js";
 import whatIsRoute from "./routes/whatIs.route.js";
 import metadataRoute from "./routes/metadata.route.js";
+import presenceRoute from "./routes/presence.route.js";
 
 /* 
 ————————————————————————————————————————————————————————————————
@@ -46,7 +47,7 @@ Middlewares
 */
 
 app.use(
-    express.json(),
+    express.json({ limit: "5mb" }),
     cookieParser(),
     corsMiddleware,
     maintenanceMiddleware
@@ -119,7 +120,6 @@ v3.use(
 
 v3.use(
     "/audit", 
-    fetchSessionMiddleware, 
     rateLimitMiddleware(240), 
     auditRoute
 );
@@ -139,9 +139,8 @@ v3.use(
 );
 
 v3.use(
-    "/metadata", 
-    fetchSessionMiddleware, 
-    rateLimitMiddleware(240), 
+    "/metadata",
+    rateLimitMiddleware(480), 
     metadataRoute
 );
 
@@ -149,6 +148,11 @@ v3.use(
     "/usernames", 
     rateLimitMiddleware(240), 
     usernamesRoute
+);
+
+v3.use(
+    "/presence",
+    presenceRoute
 );
 
 v3.use(

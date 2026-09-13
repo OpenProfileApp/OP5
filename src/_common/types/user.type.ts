@@ -14,7 +14,6 @@ export type PresenceType =
     | "idle"
     | "dnd"
     | "offline"
-    | "hidden"
 ;
 
 export type UserType = {
@@ -50,7 +49,7 @@ export type UserType = {
     sendMessages: VisibilityType;
     sendComments: VisibilityType;
     presence: PresenceType;
-    presenceVisibility: VisibilityType;
+    isOnline: boolean;
     lastActive: string;
     createdDate: string;
 }
