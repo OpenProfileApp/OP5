@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { toast, Toast } from "../scripts/toast.js";
 import { AnimatePresence, motion } from "framer-motion";
 
 export default function ToastContainer() {
     const [toasts, setToasts] = useState<Toast[]>([]);
     const [isHovered, setIsHovered] = useState(false);
+    const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
     
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -30,8 +32,20 @@ export default function ToastContainer() {
         setToasts((prev) => prev.filter((x) => x.id !== id));
     };
 
+    const getActivePortalTarget = () => {
+        const openDialogs = document.querySelectorAll<HTMLDialogElement>("dialog[open]");
+        if (openDialogs.length > 0) {
+            return openDialogs[openDialogs.length - 1];
+        }
+        return document.body;
+    };
+
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setPortalTarget(getActivePortalTarget());
+
         const unsubscribe = toast.subscribe((t) => {
+            setPortalTarget(getActivePortalTarget());
             setToasts((prev) => [...prev, t]);
         });
 
@@ -65,9 +79,11 @@ export default function ToastContainer() {
         };
     }, [activeToast, isHovered]);
 
-    return (
+    if (!portalTarget) return null;
+
+    return createPortal(
         <div
-            className="toast toast-top toast-center z-99999 items-center pointer-events-auto"
+            className="fixed inset-x-0 top-4 z-[99999999] flex justify-center pointer-events-none"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
@@ -80,7 +96,7 @@ export default function ToastContainer() {
                         exit={{ opacity: 0, scale: 0.9, y: -5 }}
                         transition={{ duration: 0.2 }}
                         className={`
-                            alert origin-center flex items-center justify-between py-3.5 shadow-md w-max max-w-md
+                            alert origin-center flex items-center justify-between py-3.5 shadow-2xl w-max max-w-md pointer-events-auto
                             ${toastClasses[activeToast.type]}
                         `}
                     >
@@ -114,6 +130,7 @@ export default function ToastContainer() {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div>,
+        portalTarget
     );
 }
