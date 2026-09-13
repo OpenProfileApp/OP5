@@ -153,6 +153,10 @@ hr {
     color: var(--color-premium);
 }
 
+.text-nightly {
+    color: var(--color-nightly);
+}
+
 .text-publisher {
     color: var(--color-publisher);
 }
