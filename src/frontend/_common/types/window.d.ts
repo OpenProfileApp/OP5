@@ -1,12 +1,13 @@
 export {};
 
-import type { Env, Config } from "../../../../app.config.ts";
+import type { Config } from "../../../../app.config.ts";
 import { PlatformPermissionNameType } from "../../../_common/types/permissions.type.ts";
 import { GetUserItemType } from "../../../_common/types/user.type.ts";
 import { SessionActionType } from "../../../_common/types/validSession.type.ts";
 
 export type ClientConfig = {
-    useNerdFonts: Env["USE_NERDFONTS"];
+    isProduction: Config["isProduction"]
+    useNerdFonts: Config["useNerdFonts"];
     theme: Config["theme"];
     metadata: Config["metadata"];
     domains: Config["domains"];
