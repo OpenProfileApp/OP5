@@ -21,10 +21,15 @@ export default function ExternalLink({
     const [metadata, setMetadata] = useState<MetadataType | null>(null);
     const [domain, setDomain] = useState<string | null>(null);
     
-    const [isImageError, setIsImageError] = useState<boolean>(false);
+    const [isMainImageError, setIsMainImageError] = useState<boolean>(false);
+    const [isTooltipImageError, setIsTooltipImageError] = useState<boolean>(false);
 
     useEffect(() => {
         let isMounted = true;
+
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setIsMainImageError(false);
+        setIsTooltipImageError(false);
 
         async function fetchMetadata() {
             try {
@@ -62,48 +67,51 @@ export default function ExternalLink({
     const siteName = metadata?.siteName || "Website";
     const title = metadata?.title || domain;
 
-    const fallbackNode = (
-        <div className="w-10 h-10 rounded flex items-center justify-center shrink-0 bg-base-300 text-lg-content">
-            <span className="font-nerdfont leading-none text-lg">
+    const getFallbackNode = (transparentBg = false) => (
+        <div className={`w-10 h-10 rounded flex items-center justify-center shrink-0 text-lg-content ${transparentBg ? "" : "bg-base-300"}`}>
+            <span className={`font-nerdfont leading-none ${transparentBg ? "text-2xl" : "text-lg"}`}>
                 
             </span>
         </div>
     );
 
-    const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const handleLoad = (setError: React.Dispatch<React.SetStateAction<boolean>>) => (
+        e: React.SyntheticEvent<HTMLImageElement>
+    ) => {
         const img = e.currentTarget;
-        if (
-            img.naturalWidth <= (isBrandFetchExperiment ? 40 : 1) || 
-            img.naturalHeight <= (isBrandFetchExperiment ? 40 : 1)) {
-            setIsImageError(true);
+        const minSize = isBrandFetchExperiment ? 40 : 1;
+        if (img.naturalWidth <= minSize || img.naturalHeight <= minSize) {
+            setError(true);
         }
     };
 
-    const tooltipImage = domain && !isImageError ? (
+    const tooltipImgSrc = metadata?.icon || metadata?.image;
+    const tooltipImage = domain && tooltipImgSrc && !isTooltipImageError ? (
         <img
-            key={domain}
+            key={`tooltip-${domain}`}
             className="w-10 h-10 rounded shrink-0 object-cover"
-            src={metadata?.icon as string || metadata?.image as string}
-            onLoad={handleImageLoad}
-            onError={() => setIsImageError(true)}
+            src={tooltipImgSrc as string}
+            onLoad={handleLoad(setIsTooltipImageError)}
+            onError={() => setIsTooltipImageError(true)}
         />
     ) : (
-        fallbackNode
+        getFallbackNode(true)
     );
 
-    const image = domain && !isImageError ? (
+    const mainImgSrc = isBrandFetchExperiment 
+        ? `https://cdn.brandfetch.io/${domain}?c=${window.config.integrations.brandfetch}` 
+        : metadata?.icon || metadata?.image;
+
+    const image = domain && mainImgSrc && !isMainImageError ? (
         <img
-            key={domain}
+            key={`main-${domain}`}
             className="w-10 h-10 rounded shrink-0 object-cover"
-            src={`${isBrandFetchExperiment 
-                    ? `https://cdn.brandfetch.io/${domain}?c=${window.config.integrations.brandfetch}` 
-                    : metadata?.icon as string || metadata?.image as string}
-                `}
-            onLoad={handleImageLoad}
-            onError={() => setIsImageError(true)}
+            src={mainImgSrc as string}
+            onLoad={handleLoad(setIsMainImageError)}
+            onError={() => setIsMainImageError(true)}
         />
     ) : (
-        fallbackNode
+        getFallbackNode(false)
     );
 
     if (renderAsEmbed) {
