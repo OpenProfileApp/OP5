@@ -12,7 +12,7 @@ db.users.transaction(q => {
         if (d.id === "5019646586243236") {
             // Username handles
             d.username = "j9"
-            d.usernameOld = "j9studios"
+            d.username_old = "j9studios"
         }
 
         const primaryResult = q(
