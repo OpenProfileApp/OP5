@@ -29,7 +29,7 @@ type Props = {
     phoneNumber?: string;
     isPhoneNumberConfirmed?: boolean;
     password?: string;
-    birthdate?: string;
+    birthDate?: string;
     hasReadTerms?: boolean;
     username?: string;
     displayName?: string;
@@ -55,7 +55,7 @@ type RegisterAccountProps = {
     session: ValidSessionType;
     email: string;
     isEmailVerified?: boolean;
-    birthdate?: string;
+    birthDate?: string;
     username?: string;
     displayName?: string;
     avatar?: string;
@@ -167,7 +167,7 @@ export async function registerAccount({
     session,
     email,
     isEmailVerified,
-    birthdate,
+    birthDate,
     username,
     displayName,
     avatar,
@@ -346,7 +346,7 @@ export async function registerAccount({
             `INSERT INTO users (
                 id, 
                 hasEmail,
-                birthdate,
+                birthDate,
                 permissions,
                 locale,
                 timezone
@@ -354,7 +354,7 @@ export async function registerAccount({
             [
                 userId,
                 1,
-                birthdate,
+                birthDate,
                 permissions.value,
                 session.locale,
                 session.timezone
@@ -474,7 +474,7 @@ export default async function loginOrRegisterAccountService({
     // phoneNumber,
     // isPhoneNumberConfirmed,
     // password,
-    birthdate,
+    birthDate,
     // hasReadTerms, // Never set manually unless a platform operated account
     username,
     displayName,
@@ -558,7 +558,7 @@ export default async function loginOrRegisterAccountService({
             session,
             email,
             isEmailVerified,
-            birthdate,
+            birthDate,
             username,
             displayName,
             avatar,

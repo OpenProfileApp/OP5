@@ -29,8 +29,8 @@ export type UserType = {
     markdown?: string;
     tags: string;
     pronouns?: string;
-    birthdate?: string;
-    birthdateVisibility: VisibilityType;
+    birthDate?: string;
+    birthDateVisibility: VisibilityType;
     foundedDate?: string;
     foundedDateVisibility: VisibilityType;
     location: string;

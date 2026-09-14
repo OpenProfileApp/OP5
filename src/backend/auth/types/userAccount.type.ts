@@ -3,7 +3,7 @@ export type UserAccountType = {
     hasEmail: boolean;
     hasPhoneNumber: boolean;
     password: string;
-    birthdate: string;
+    birthDate: string;
     isMfaEnabled: boolean;
     totpSecret: string;
     permissions: string;
