@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
     hasEmail INTEGER NOT NULL DEFAULT 0,
     hasPhoneNumber INTEGER NOT NULL DEFAULT 0,
     password TEXT,
-    birthdate TEXT,
+    birthDate TEXT,
     isMfaEnabled INTEGER DEFAULT 0,
     totpSecret TEXT,
     permissions TEXT NOT NULL DEFAULT '0',
