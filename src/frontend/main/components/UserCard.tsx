@@ -388,8 +388,7 @@ export default function UserCard({
 
                 <div className="flex min-w-0 mt-1 items-center overflow-hidden">
                     <span className="truncate text-xs leading-snug">
-                        @{primaryUsername || data.id}
-                        {data.visibility !== "friends" && "isFriends" in data && !data.isFriends ? ` • ${formatNumber(followCount).short} Follower${followCount !== 1 && "s"}` : ""}
+                        @{primaryUsername || data.id} • {formatNumber(followCount).short} Follower{followCount !== 1 && "s"}
                     </span>
                 </div>
 
