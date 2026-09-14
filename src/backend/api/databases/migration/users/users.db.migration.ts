@@ -60,8 +60,8 @@ db.users.transaction(async q => {
                 status,
                 about,
                 tags,
-                birthdate,
-                birthdateVisibility,
+                birthDate,
+                birthDateVisibility,
                 foundedDate,
                 foundedDateVisibility,
                 theme,
@@ -88,9 +88,13 @@ db.users.transaction(async q => {
                 d.status,
                 d.about,
                 JSON.stringify((d.tags as string ?? '').split(',').map(tag => tag.trim()).filter(Boolean)),
-                DateTime.fromSQL(d.birthdate as string, { zone: "utc" }).toISO(),
+                d.birthdate 
+                    ? DateTime.fromSQL(d.birthdate as string, { zone: "utc" }).toISODate() 
+                    : null,
                 d.birthdate_visibility,
-                DateTime.fromSQL(d.founded as string, { zone: "utc" }).toISO(),
+                d.founded 
+                    ? DateTime.fromSQL(d.founded as string, { zone: "utc" }).toISODate() 
+                    : null,
                 d.founded_visibility,
                 d.theme,
                 d.aura || 0,
