@@ -7,7 +7,7 @@ import { i18n } from "../../../_common/instances.js";
 import getInterestsService from "../../services/getInterests.service.js";
 import { InterestItemType } from "../../../../_common/types/interest.type.js";
 import whatIs from "../../helpers/whatIs.js";
-import { AdvertisementType } from "../../../../_common/types/advertisements.type.js";
+import { AdvertisementType } from "../../../../_common/types/advertisement.type.js";
 import { db } from "../../databases/db.js";
 import { assertDbSuccess } from "../../../../_common/asserts/dbSuccess.assert.js";
 

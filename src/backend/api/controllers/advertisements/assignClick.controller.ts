@@ -6,7 +6,7 @@ import { log } from "../../instances.js";
 import { i18n } from "../../../_common/instances.js";
 import { assertDbSuccess } from "../../../../_common/asserts/dbSuccess.assert.js";
 import { db } from "../../databases/db.js";
-import { AdvertisementType } from "../../../../_common/types/advertisements.type.js";
+import { AdvertisementType } from "../../../../_common/types/advertisement.type.js";
 
 export const assignClickController = async (req: Request, res: Response) => {
     try {
