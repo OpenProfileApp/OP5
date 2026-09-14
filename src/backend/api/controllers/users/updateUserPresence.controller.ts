@@ -28,7 +28,7 @@ export const updateUserPresence = async (req: Request, res: Response) => {
             });
         }
 
-        const allowedTypes = ["online", "idle", "offline"];
+        const allowedTypes = ["online", "idle", "dnd", "offline"];
 
         if (!allowedTypes.includes(type as string)) {
             return res.status(400).json({
@@ -53,15 +53,15 @@ export const updateUserPresence = async (req: Request, res: Response) => {
             });
         }
 
-        if (currentUser.presence === "offline" || type === "offline") {
-            if (currentUser.isOnline) {
-                const result = db.users.query(
-                    "UPDATE users SET isOnline = 0 WHERE id = ?",
-                    [userId]
-                );
+        const nowIso = DateTime.now().toUTC().toISO();
 
-                assertDbSuccess(result);
-            }
+        if (currentUser.presence === "offline" || type === "offline") {
+            const result = db.users.query(
+                "UPDATE users SET isOnline = 0 WHERE id = ?",
+                [userId]
+            );
+
+            assertDbSuccess(result);
 
             return res.status(200).json({
                 ok: false,
@@ -70,8 +70,8 @@ export const updateUserPresence = async (req: Request, res: Response) => {
 
         if (currentUser.presence === "dnd") {
             const result = db.users.query(
-                `UPDATE users SET isOnline = 1, lastActive = ? WHERE id = ?`,
-                [DateTime.now().toUTC().toISO(), userId]
+                "UPDATE users SET isOnline = 1, lastActive = ? WHERE id = ?",
+                [nowIso, userId]
             );
 
             assertDbSuccess(result);
@@ -82,8 +82,8 @@ export const updateUserPresence = async (req: Request, res: Response) => {
         }
 
         const result = db.users.query(
-            `UPDATE users SET presence = ?, isOnline = 1, lastActive = ? WHERE id = ?`,
-            [type, DateTime.now().toUTC().toISO(), userId]
+            "UPDATE users SET presence = ?, isOnline = 1, lastActive = ? WHERE id = ?",
+            [type, nowIso, userId]
         );
 
         assertDbSuccess(result);

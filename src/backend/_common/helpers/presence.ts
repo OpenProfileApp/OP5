@@ -48,13 +48,11 @@ export async function markUserIdle(sessionId: string, userId: string) {
 export async function checkIdleTimer(sessionId: string, userId: string) {
     clearIdleTimer(sessionId);
 
-    if (isUserIdle.get(userId) === true) {
-        const isUpdated = await updatePresence(userId, "online");
+    await updatePresence(userId, "online");
 
-        if (isUpdated) {
-            isUserIdle.set(userId, false);
-            sendPresenceToClient(sessionId, userId, "online");
-        }
+    if (isUserIdle.get(userId) === true) {
+        isUserIdle.set(userId, false);
+        sendPresenceToClient(sessionId, userId, "online");
     }
 
     const timer = setTimeout(() => {
