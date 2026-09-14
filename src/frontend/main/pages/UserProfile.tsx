@@ -288,7 +288,7 @@ export default function UserProfile() {
 
                 setPrimaryUsername(primaryUsername);
                 setAbout(data.markdown);
-                setShowConfetti(isBirthdayToday(data?.birthdate) || false);
+                setShowConfetti(isBirthdayToday(data?.birthDate) || false);
                 setIsSensitive(data?.isSensitive);
                 setIsMature(data?.isMature);
                 setIsFollowing(data?.interactions?.follows?.hasInteracted || false);
@@ -820,20 +820,31 @@ export default function UserProfile() {
 
                                         {
                                             (
-                                                data?.birthdate && data?.type === "user" ||
-                                                data?.birthdate && data?.type === "author"
+                                                data?.birthDate && data?.type === "user" ||
+                                                data?.birthDate && data?.type === "author"
                                             )
                                         && (
                                             <div className="flex items-center gap-2">
                                                 <div className="font-nerdfont leading-none text-base">󰃫</div>
                                                 <div 
                                                     className="text-sm tooltip"
-                                                    data-tip={`${t("words.Born")} ${formatLongRelative(data?.birthdate)}`}
+                                                    data-tip={`${t("words.Born")} ${formatLongRelative(data?.birthDate)}`}
                                                 >
-                                                    {formatShortRelative(data?.birthdate)}
+                                                    {formatShortRelative(data?.birthDate)}
                                                 </div>
 
-                                                {data?.birthdateVisibility === "private" && (
+                                                {data?.birthDateVisibility === "friends" && (
+                                                    <div 
+                                                        className="tooltip"
+                                                        data-tip={t("defaults.onlyFriends")}
+                                                    >
+                                                        <span className="font-nerdfont leading-none text-sub text-sm cursor-default">
+                                                            
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                {data?.birthDateVisibility === "private" && (
                                                     <div 
                                                         className="tooltip"
                                                         data-tip={t("defaults.onlyYou")}
@@ -855,6 +866,17 @@ export default function UserProfile() {
                                                 >
                                                     {formatShortRelative(data?.foundedDate)}
                                                 </div>
+
+                                                {data?.foundedDateVisibility === "friends" && (
+                                                    <div 
+                                                        className="tooltip"
+                                                        data-tip={t("defaults.onlyFriends")}
+                                                    >
+                                                        <span className="font-nerdfont leading-none text-sub text-sm cursor-default">
+                                                            
+                                                        </span>
+                                                    </div>
+                                                )}
 
                                                 {data?.foundedDateVisibility === "private" && (
                                                     <div 
