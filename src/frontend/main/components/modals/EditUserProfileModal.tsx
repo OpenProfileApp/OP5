@@ -17,6 +17,9 @@ import { GetLinkType } from "../../../../_common/types/link.type.js";
 import { VisibilityType } from "../../../../_common/types/visibility.type.js";
 import { Tooltip } from "../../../_common/components/Tooltip.js";
 import { toast } from "../../../_common/scripts/toast.js";
+import { DateInput } from "../../../_common/components/DateInput.js";
+import { CheckboxInput } from "../../../_common/components/CheckboxInput.js";
+import { recommendedTags } from "../../../_common/scripts/tags.js";
 
 export interface EditUserProfileModalRef {
     open: (
@@ -64,13 +67,13 @@ function SortableUsernameItem({
 
     const roundingClass =
         totalCount === 1 || totalCount === 2
-            ? "rounded-box"
+            ? "rounded"
             : index === 0
-            ? "rounded-box"
+            ? "rounded"
             : index === 1
-            ? "rounded-t-box"
+            ? "rounded-t"
             : index === 2
-            ? "rounded-b-box"
+            ? "rounded-b"
             : "";
 
     return (
@@ -161,8 +164,8 @@ function SortableLinkItem({
             className={`
                 text-xs w-full border border-base-300 p-3 transition-colors flex items-center gap-3
                 ${index % 2 === 0 ? "bg-base-200" : "bg-[#151515]"}
-                ${isFirst ? "rounded-t-box" : ""}
-                ${isLast ? "rounded-b-box" : ""}
+                ${isFirst ? "rounded-t" : ""}
+                ${isLast ? "rounded-b" : ""}
             `}
         >
             <button
@@ -226,6 +229,8 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
     const animatedAvatarUrl = useObjectURL(animatedAvatar);
 
     const bannerUrl = useObjectURL(banner);
+
+    const isPremium = window.session.permissions.array.includes("PREMIUM_ACCESS");
 
     const resetState = () => {
         setData(null);
@@ -665,7 +670,7 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                             </button>
                         </div>
 
-                        <div className="border-base-300 pt-3 md:pr-6 rounded-b-box overflow-x-hidden overflow-y-auto h-108">
+                        <div className="border-base-300 pt-3 md:pr-6 rounded-b overflow-x-hidden overflow-y-auto h-108">
                             {activeTab === "appearance" && (
                                 <fieldset className="fieldset w-full">
                                     <div className="flex gap-3">
@@ -695,9 +700,7 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                                     handleFieldChange("avatar", staticBase64 as GetUserItemType["avatar"]);
                                                     handleFieldChange("animatedAvatar", animatedBase64 as GetUserItemType["animatedAvatar"]);
                                                 }}
-                                                accept={`image/png, image/jpeg, image/jpg${
-                                                    window.session.permissions.array.includes("PREMIUM_ACCESS") ? ", image/gif" : ""
-                                                }`}
+                                                accept={`image/png, image/jpeg, image/jpg${isPremium ? ", image/gif" : ""}`}
                                                 aspectRatio={1}
                                                 height="32"
                                                 width="32"
@@ -742,7 +745,6 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                         </label>
 
                                         <input
-                                            id="edit-profile-name"
                                             type="text"
                                             className="input w-full"
                                             placeholder={
@@ -810,12 +812,12 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                         </label>
 
                                         <textarea
-                                            className="textarea h-20 w-full resize-none"
+                                            className="textarea w-full resize-none !h-auto min-h-[2.5rem] [field-sizing:content]"
                                             placeholder={
-                                                initialData?.status ||
-                                                "What are you thinking?"
+                                                initialData?.status || "What is on your mind?"
                                             }
                                             value={data.status ?? ""}
+                                            rows={1}
                                             maxLength={160}
                                             onChange={(e) =>
                                                 handleFieldChange("status", e.target.value)
@@ -833,29 +835,14 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                         </span>
                                     </div>
 
-                                    <div className="flex flex-col gap-1 mt-1">
-                                        <label className="label">
-                                            Aura
-                                        </label>
-
-                                        <TypeableDropdownInput
-                                            value={
-                                                data.isAuraEnabled ? "true" : "false"
-                                            }
-                                            options={[
-                                                { id: "true", name: "Enabled" },
-                                                { id: "false", name: "Disabled" },
-                                            ]}
-                                            placeholder="Select Option"
-                                            typeable={false}
-                                            onChange={(option) =>
-                                                handleFieldChange(
-                                                    "isAuraEnabled",
-                                                    option === "true"
-                                                )
-                                            }
-                                        />
-                                    </div>
+                                    <CheckboxInput
+                                        label="Aura"
+                                        checked={data.isAuraEnabled}
+                                        disabled={!isPremium}
+                                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                        // @ts-ignore
+                                        onChange={(checked) => handleFieldChange("isAuraEnabled", checked)}
+                                    />
 
                                     <div className="flex gap-3">
                                         <div className="w-full">
@@ -868,6 +855,7 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                                     initialData?.auraPrimary || "#000000"
                                                 }
                                                 value={data.auraPrimary || "#000000"}
+                                                disabled={!isPremium}
                                                 onChange={(val) =>
                                                     handleFieldChange(
                                                         "auraPrimary",
@@ -887,6 +875,7 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                                     initialData?.auraSecondary || "#000000"
                                                 }
                                                 value={data.auraSecondary || "#000000"}
+                                                disabled={!isPremium}
                                                 onChange={(val) =>
                                                     handleFieldChange(
                                                         "auraSecondary",
@@ -896,64 +885,206 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                             />
                                         </div>
                                     </div>
+                                    
+                                    {
+                                        (data?.id === "5719552362357773" ||
+                                        data?.id === "5019646586243236")
+                                    && (
+                                        <>
+                                            <div className="divider text-xs my-0 mt-3">
+                                                <span 
+                                                    className="flex gap-2 tooltip" 
+                                                    data-tip="Experimental Feature"
+                                                >
+                                                    Overrides
+                                                    <span className="font-nerdfont leading-none text-sm text-nightly"></span>
+                                                </span>
+                                            </div>
 
-                                    <div className="divider text-xs my-0 mt-3">
-                                        <span 
-                                            className="flex gap-2 tooltip" 
-                                            data-tip="Experimental Feature"
-                                        >
-                                            Overrides
-                                            <span className="font-nerdfont leading-none text-sm text-nightly"></span>
-                                        </span>
-                                    </div>
-
-                                    <div className="flex flex-col gap-1 mt-1">
-                                        <label className="label">
-                                            Dragonights Fanflair
-                                        </label>
-
-                                        <TypeableDropdownInput
-                                            value={
-                                                data.fanflair === "true" ? "true" : "false"
-                                            }
-                                            options={[
-                                                { id: "true", name: "Enabled" },
-                                                { id: "false", name: "Disabled" },
-                                            ]}
-                                            placeholder="Select Option"
-                                            typeable={false}
-                                            onChange={(option) =>
-                                                handleFieldChange(
-                                                    "fanflair",
-                                                    option as string
-                                                )
-                                            }
-                                        />
-                                    </div>
+                                            <CheckboxInput
+                                                label="Dragonights Fanflair"
+                                                checked={data.fanflair as unknown as boolean}
+                                                onChange={(checked) => handleFieldChange("fanflair", checked ? "true" : "false")}
+                                            />
+                                        </>
+                                    )}
                                 </fieldset>
                             )}
 
                             {activeTab === "overview" && (
                                 <fieldset className="fieldset w-full">
                                     <div className="flex flex-col gap-1 mt-1">
-                                        <label className="label">About</label>
+                                        <label className="label">
+                                            Account Type
+                                        </label>
+
+                                        <TypeableDropdownInput
+                                            value={
+                                                data.type.charAt(0).toUpperCase() + data.type.slice(1).toLowerCase()
+                                            }
+                                            options={[
+                                                { id: "user", name: "User" },
+                                                { id: "author", name: "Author" },
+                                                { id: "publisher", name: "Publisher" },
+                                            ]}
+                                            placeholder="Select Option"
+                                            typeable={false}
+                                            onChange={(option) =>
+                                                handleFieldChange(
+                                                    "type",
+                                                    option as string
+                                                )
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="flex flex-col">
+                                        <label className="label flex gap-2">
+                                            Content Flags
+
+                                            <Tooltip content={(
+                                                <div className="flex flex-col gap-2 tooltip-content bg-base-200 text-xs text-left border border-base-300 rounded shadow-2xl">
+                                                    <div>
+                                                        <strong>Sensitive Content (viewable by everyone):</strong>
+                                                        <br />
+                                                        Your content includes sensitive themes, such as trauma, severe mental health struggles (e.g., self-harm or suicide), grief, hate speech, abuse, minor gore, or non-sexual revealing clothing.
+                                                    </div>
+
+                                                    <div>
+                                                        <strong>Mature Content (18+ accounts only):</strong>
+                                                        <br />
+                                                        Your content includes themes restricted to adult audiences due to explicit detail, such as graphic violence, suggestive sexual content, severe profanity, explicit substance abuse, simulated gambling, or sexually suggestive revealing clothing.
+                                                    </div>
+                                                </div>
+                                            )}>
+                                                <span className="font-nerdfont text-sm"></span>
+                                            </Tooltip>
+                                        </label>
+
+                                        <div className="flex gap-2">
+                                            <CheckboxInput
+                                                label="Sensitive Content"
+                                                checked={data.isSensitive}
+                                                className="mt-1"
+                                                onChange={(checked) => handleFieldChange("isSensitive", checked as unknown as boolean)}
+                                            />
+
+                                            <CheckboxInput
+                                                label="Mature Content"
+                                                checked={data.isMature}
+                                                className="mt-1"
+                                                onChange={(checked) => handleFieldChange("isMature", checked as unknown as boolean)}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col gap-1 mt-1">
+                                        <label className="label">About ({`${data.about?.length}/320`})</label>
 
                                         <textarea
-                                            className="textarea h-20 w-full resize-none"
+                                            className="textarea w-full resize-none !h-auto min-h-[2.5rem] [field-sizing:content]"
                                             placeholder={
-                                                initialData?.about ||
-                                                "Tell us about yourself..."
+                                                initialData?.about || "Tell us about yourself..."
                                             }
                                             value={data.about ?? ""}
+                                            maxLength={320}
                                             onChange={(e) =>
                                                 handleFieldChange("about", e.target.value)
                                             }
                                         />
                                     </div>
 
-                                    <div className="flex flex-col gap-1 mt-1">
-                                        <label className="label">Tags ({`${currentTags.length}/10`})</label>
+                                    <div className="divider text-xs my-0 mt-3">
+                                        <span className="flex gap-2">
+                                            {data.type !== "publisher" ? "Personal" : "Business"}
+                                        </span>
+                                    </div>
 
+                                    {data.type !== "publisher" ? (
+                                        <>
+                                            <div className="flex flex-col gap-1 mt-1">
+                                                <label className="label">
+                                                    Pronouns
+                                                </label>
+
+                                                <input
+                                                    type="text"
+                                                    className="input w-full"
+                                                    placeholder={
+                                                        initialData?.pronouns ||
+                                                        "What are your pronouns?"
+                                                    }
+                                                    value={data.pronouns ?? ""}
+                                                    onChange={(e) =>
+                                                        handleFieldChange(
+                                                            "pronouns",
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+
+                                            <div className="flex flex-col gap-1">
+                                                <label className="label flex gap-2">
+                                                    Birth Date
+
+                                                    <Tooltip content={(
+                                                        <div className="flex flex-col gap-2 tooltip-content bg-base-200 text-xs text-left border border-base-300 rounded shadow-2xl">
+                                                            <div>Friends can view by default. You can update its visibility in the privacy tab.</div>
+                                                        </div>
+                                                    )}>
+                                                        <span className="font-nerdfont text-sm"></span>
+                                                    </Tooltip>
+                                                </label>
+
+                                                <DateInput
+                                                    value={data.birthDate ?? ""}
+                                                    onChange={(value) => handleFieldChange("birthDate", value)}
+                                                />
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-col gap-1">
+                                            <label className="label flex gap-2">
+                                                Founded Date
+                                            </label>
+
+                                            <DateInput
+                                                value={data.foundedDate ?? ""}
+                                                onChange={(value) => handleFieldChange("foundedDate", value)}
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="flex flex-col gap-1 mt-1">
+                                        <label className="label">
+                                            Location
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            className="input w-full"
+                                            placeholder={
+                                                initialData?.location ||
+                                                "Where are you located (physically or mentally)?"
+                                            }
+                                            value={data.location ?? ""}
+                                            onChange={(e) =>
+                                                handleFieldChange(
+                                                    "location",
+                                                    e.target.value
+                                                )
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="divider text-xs my-0 mt-3">
+                                        <span className="flex gap-2">
+                                            Tags ({`${currentTags.length}/10`})
+                                        </span>
+                                    </div>
+
+                                    <div className="flex flex-col gap-1 mt-1">
                                         <div className={`flex flex-wrap gap-1 ${currentTags.length > 0 ? "mb-1" : ""}`}>
                                             {currentTags.map((tag, index) => (
                                                 <div
@@ -975,6 +1106,24 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                             ))}
                                         </div>
 
+                                        {!recommendedTags.some(item => currentTags.includes(item.tag)) && (
+                                            <div className="flex gap-1 items-center">
+                                                <span>Missing an optional, but recommended category tag</span>
+
+                                                <Tooltip 
+                                                    content={(
+                                                        <div className="flex flex-col gap-1 p-2 bg-base-200 text-xs text-left border border-base-300 rounded shadow-2xl">
+                                                            {recommendedTags.map(item => (
+                                                                <div key={item.tag}><strong className="mr-1">#</strong>{item.tag}</div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                >
+                                                    <span className="font-nerdfont text-sm"></span>
+                                                </Tooltip>
+                                            </div>
+                                        )}
+
                                         {currentTags.length < 10 && (
                                             <div className="flex items-center gap-2">
                                                 <div className="relative flex-1">
@@ -984,7 +1133,7 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                                     <input
                                                         type="text"
                                                         className="input w-full pl-7 text-sm"
-                                                        placeholder="new-author"
+                                                        placeholder="your-tag-here"
                                                         value={tagInput}
                                                         maxLength={24}
                                                         onChange={(e) => setTagInput(e.target.value.toLowerCase().replace(/\s+/g, "-"))}
@@ -1013,7 +1162,7 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                             {activeTab === "usernames" && (
                                 <div className="flex flex-col mt-2">
                                     <div className="divider text-xs my-3">User ID</div>
-                                    <div className="text-xs w-full border border-base-300 p-3 flex items-center gap-3 bg-base-200 rounded-box opacity-75">
+                                    <div className="text-xs w-full border border-base-300 p-3 flex items-center gap-3 bg-base-200 rounded opacity-75">
                                         <div className="flex-1 flex flex-col gap-1">
                                             <div className="relative flex items-center">
                                                 <span className="absolute left-3 text-sub font-nerdfont text-sm select-none z-1">
@@ -1059,7 +1208,7 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                         <button
                                             type="button"
                                             onClick={handleAddUsername}
-                                            className="mt-3 cursor-pointer border-2 border-dashed border-base-300 rounded-box flex items-center justify-center py-3 transition-colors text-sm opacity-70 hover:opacity-100"
+                                            className="mt-3 cursor-pointer border-2 border-dashed border-base-300 rounded flex items-center justify-center py-3 transition-colors text-sm opacity-70 hover:opacity-100"
                                         >
                                             <span className="font-nerdfont text-lg">
                                                 
@@ -1101,7 +1250,7 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                             <button
                                                 type="button"
                                                 onClick={handleAddLink}
-                                                className="mt-3 cursor-pointer border-2 border-dashed border-base-300 rounded-box flex items-center justify-center py-3 transition-colors text-sm opacity-70 hover:opacity-100"
+                                                className="mt-3 cursor-pointer border-2 border-dashed border-base-300 rounded flex items-center justify-center py-3 transition-colors text-sm opacity-70 hover:opacity-100"
                                             >
                                                 <span className="font-nerdfont text-lg">
                                                     
@@ -1114,91 +1263,129 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
 
                             {activeTab === "privacy" && (
                                 <fieldset className="fieldset w-full">
-                                    <div className="flex flex-col gap-1 mt-1">
-                                        <label className="label flex gap-2">
-                                            Profile Visibility
+                                    <div className="flex gap-2">
+                                        <div className="flex flex-col gap-1 mt-1">
+                                            <label className="label flex gap-2">
+                                                Profile Visibility
 
-                                            <Tooltip content={(
-                                                <div className="flex flex-col gap-2 tooltip-content bg-base-200 text-xs text-left border border-base-300 rounded shadow-2xl">
-                                                    <div><strong>Public:</strong> Visible to everyone.</div>
-                                                    <div><strong>Unlisted:</strong> Only accessible via direct link.</div>
-                                                    <div><strong>Registered:</strong> Visible only to logged-in users.</div>
-                                                    <div><strong>Friends:</strong> Visible only to friends on your list.</div>
-                                                    <div><strong>Only Me:</strong> Visible only to you.</div>
-                                                </div>
-                                            )}>
-                                                <span className="font-nerdfont text-sm"></span>
-                                            </Tooltip>
-                                        </label>
+                                                <Tooltip content={(
+                                                    <div className="flex flex-col gap-2 tooltip-content bg-base-200 text-xs text-left border border-base-300 rounded shadow-2xl">
+                                                        <div><strong>Public:</strong> Visible to everyone.</div>
+                                                        <div><strong>Unlisted:</strong> Only accessible via direct link.</div>
+                                                        <div><strong>Registered:</strong> Visible only to logged-in users.</div>
+                                                        <div><strong>Friends:</strong> Visible only to friends on your list.</div>
+                                                        <div><strong>Private:</strong> Visible only to you.</div>
+                                                    </div>
+                                                )}>
+                                                    <span className="font-nerdfont text-sm"></span>
+                                                </Tooltip>
+                                            </label>
 
-                                        <TypeableDropdownInput
-                                            value={
-                                                data.visibility.charAt(0).toUpperCase() + data.visibility.slice(1).toLowerCase()
-                                            }
-                                            options={[
-                                                { id: "public", name: "Public" },
-                                                { id: "unlisted", name: "Unlisted" },
-                                                { id: "registered", name: "Registered" },
-                                                { id: "friends", name: "Friends" },
-                                                { id: "private", name: "Only Me" },
-                                            ]}
-                                            placeholder="Select Option"
-                                            typeable={false}
-                                            onChange={(option) =>
-                                                handleFieldChange(
-                                                    "visibility",
-                                                    option as VisibilityType
-                                                )
-                                            }
-                                        />
-                                    </div>
+                                            <TypeableDropdownInput
+                                                value={
+                                                    data.visibility.charAt(0).toUpperCase() + data.visibility.slice(1).toLowerCase()
+                                                }
+                                                options={[
+                                                    { id: "public", name: "Public" },
+                                                    { id: "unlisted", name: "Unlisted" },
+                                                    { id: "registered", name: "Registered" },
+                                                    { id: "friends", name: "Friends" },
+                                                    { id: "private", name: "Private" },
+                                                ]}
+                                                placeholder="Select Option"
+                                                typeable={false}
+                                                onChange={(option) =>
+                                                    handleFieldChange(
+                                                        "visibility",
+                                                        option as VisibilityType
+                                                    )
+                                                }
+                                            />
+                                        </div>
 
-                                    <div className="flex flex-col gap-1 mt-1">
-                                        <label className="label">
-                                            birthdateVisibility
-                                        </label>
+                                        {data.type !== "publisher" ? (
+                                            <div className="flex flex-col gap-1 mt-1">
+                                                <label className="label flex gap-2">
+                                                    Birth Date Visibility
 
-                                        <TypeableDropdownInput
-                                            value={
-                                                data.isAuraEnabled ? "true" : "false"
-                                            }
-                                            options={[
-                                                { id: "true", name: "Enabled" },
-                                                { id: "false", name: "Disabled" },
-                                            ]}
-                                            placeholder="Select Option"
-                                            typeable={false}
-                                            onChange={(option) =>
-                                                handleFieldChange(
-                                                    "isAuraEnabled",
-                                                    option === "true"
-                                                )
-                                            }
-                                        />
-                                    </div>
+                                                    <Tooltip content={(
+                                                        <div className="flex flex-col gap-2 tooltip-content bg-base-200 text-xs text-left border border-base-300 rounded shadow-2xl">
+                                                            <div><strong>Default:</strong> Follows profile visibility.</div>
+                                                            <div><strong>Public:</strong> Visible to everyone.</div>
+                                                            <div><strong>Registered:</strong> Visible only to logged-in users.</div>
+                                                            <div><strong>Followers:</strong> Visible to users who follow you.</div>
+                                                            <div><strong>Friends:</strong> Visible only to friends on your list.</div>
+                                                            <div><strong>Private:</strong> Visible only to you.</div>
+                                                        </div>
+                                                    )}>
+                                                        <span className="font-nerdfont text-sm"></span>
+                                                    </Tooltip>
+                                                </label>
 
-                                    <div className="flex flex-col gap-1 mt-1">
-                                        <label className="label">
-                                            foundedDateVisibility
-                                        </label>
+                                                <TypeableDropdownInput
+                                                    value={
+                                                        data.birthDateVisibility.charAt(0).toUpperCase() + data.birthDateVisibility.slice(1).toLowerCase()
+                                                    }
+                                                    options={[
+                                                        { id: "default", name: "Default" },
+                                                        { id: "public", name: "Public" },
+                                                        { id: "registered", name: "Registered" },
+                                                        { id: "followers", name: "Followers" },
+                                                        { id: "friends", name: "Friends" },
+                                                        { id: "private", name: "Private" },
+                                                    ]}
+                                                    placeholder="Select Option"
+                                                    typeable={false}
+                                                    onChange={(option) =>
+                                                        handleFieldChange(
+                                                            "birthDateVisibility",
+                                                            option as VisibilityType
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col gap-1 mt-1">
+                                                <label className="label flex gap-2">
+                                                    Founded Date Visibility
 
-                                        <TypeableDropdownInput
-                                            value={
-                                                data.isAuraEnabled ? "true" : "false"
-                                            }
-                                            options={[
-                                                { id: "true", name: "Enabled" },
-                                                { id: "false", name: "Disabled" },
-                                            ]}
-                                            placeholder="Select Option"
-                                            typeable={false}
-                                            onChange={(option) =>
-                                                handleFieldChange(
-                                                    "isAuraEnabled",
-                                                    option === "true"
-                                                )
-                                            }
-                                        />
+                                                    <Tooltip content={(
+                                                        <div className="flex flex-col gap-2 tooltip-content bg-base-200 text-xs text-left border border-base-300 rounded shadow-2xl">
+                                                            <div><strong>Default:</strong> Follows profile visibility.</div>
+                                                            <div><strong>Public:</strong> Visible to everyone.</div>
+                                                            <div><strong>Registered:</strong> Visible only to logged-in users.</div>
+                                                            <div><strong>Followers:</strong> Visible to users who follow you.</div>
+                                                            <div><strong>Friends:</strong> Visible only to friends on your list.</div>
+                                                            <div><strong>Private:</strong> Visible only to you.</div>
+                                                        </div>
+                                                    )}>
+                                                        <span className="font-nerdfont text-sm"></span>
+                                                    </Tooltip>
+                                                </label>
+
+                                                <TypeableDropdownInput
+                                                    value={
+                                                        data.foundedDateVisibility.charAt(0).toUpperCase() + data.foundedDateVisibility.slice(1).toLowerCase()
+                                                    }
+                                                    options={[
+                                                        { id: "default", name: "Default" },
+                                                        { id: "public", name: "Public" },
+                                                        { id: "registered", name: "Registered" },
+                                                        { id: "followers", name: "Followers" },
+                                                        { id: "friends", name: "Friends" },
+                                                        { id: "private", name: "Private" },
+                                                    ]}
+                                                    placeholder="Select Option"
+                                                    typeable={false}
+                                                    onChange={(option) =>
+                                                        handleFieldChange(
+                                                            "foundedDateVisibility",
+                                                            option as VisibilityType
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="divider text-xs my-0 mt-3">
@@ -1207,87 +1394,99 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                                         </span>
                                     </div>
 
-                                    <div className="flex flex-col gap-1 mt-1">
-                                        <label className="label">
-                                            areFriendRequestsEnabled
-                                        </label>
+                                    <CheckboxInput
+                                        label="Recieve Friend Requests"
+                                        checked={data.areFriendRequestsEnabled}
+                                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                        // @ts-ignore
+                                        onChange={(checked) => handleFieldChange("areFriendRequestsEnabled", checked)}
+                                    />
 
-                                        <TypeableDropdownInput
-                                            value={
-                                                data.isAuraEnabled ? "true" : "false"
-                                            }
-                                            options={[
-                                                { id: "true", name: "Enabled" },
-                                                { id: "false", name: "Disabled" },
-                                            ]}
-                                            placeholder="Select Option"
-                                            typeable={false}
-                                            onChange={(option) =>
-                                                handleFieldChange(
-                                                    "isAuraEnabled",
-                                                    option === "true"
-                                                )
-                                            }
-                                        />
-                                    </div>
+                                    <div className="flex gap-2">
+                                        <div className="flex flex-col gap-1 mt-1">
+                                            <label className="label flex gap-2">
+                                                Direct Messages
 
-                                    <div className="flex flex-col gap-1 mt-1">
-                                        <label className="label">
-                                            sendMessages
-                                        </label>
+                                                <Tooltip content={(
+                                                    <div className="flex flex-col gap-2 tooltip-content bg-base-200 text-xs text-left border border-base-300 rounded shadow-2xl">
+                                                        <div><strong>Public:</strong> Everyone can message you.</div>
+                                                        <div><strong>Followers:</strong> Users who follow you can message you.</div>
+                                                        <div><strong>Friends:</strong> Friends on your list can message you.</div>
+                                                        <div><strong>Private:</strong> No one can message you.</div>
+                                                    </div>
+                                                )}>
+                                                    <span className="font-nerdfont text-sm"></span>
+                                                </Tooltip>
+                                            </label>
 
-                                        <TypeableDropdownInput
-                                            value={
-                                                data.isAuraEnabled ? "true" : "false"
-                                            }
-                                            options={[
-                                                { id: "true", name: "Enabled" },
-                                                { id: "false", name: "Disabled" },
-                                            ]}
-                                            placeholder="Select Option"
-                                            typeable={false}
-                                            onChange={(option) =>
-                                                handleFieldChange(
-                                                    "isAuraEnabled",
-                                                    option === "true"
-                                                )
-                                            }
-                                        />
-                                    </div>
+                                            <TypeableDropdownInput
+                                                value={
+                                                    data.birthDateVisibility.charAt(0).toUpperCase() + data.birthDateVisibility.slice(1).toLowerCase()
+                                                }
+                                                options={[
+                                                    { id: "public", name: "Public" },
+                                                    { id: "followers", name: "Followers" },
+                                                    { id: "friends", name: "Friends" },
+                                                    { id: "private", name: "Private" },
+                                                ]}
+                                                placeholder="Select Option"
+                                                typeable={false}
+                                                onChange={(option) =>
+                                                    handleFieldChange(
+                                                        "birthDateVisibility",
+                                                        option as VisibilityType
+                                                    )
+                                                }
+                                            />
+                                        </div>
 
-                                    <div className="flex flex-col gap-1 mt-1">
-                                        <label className="label">
-                                            sendComments
-                                        </label>
+                                        <div className="flex flex-col gap-1 mt-1">
+                                            <label className="label flex gap-2">
+                                                Content Comments
 
-                                        <TypeableDropdownInput
-                                            value={
-                                                data.isAuraEnabled ? "true" : "false"
-                                            }
-                                            options={[
-                                                { id: "true", name: "Enabled" },
-                                                { id: "false", name: "Disabled" },
-                                            ]}
-                                            placeholder="Select Option"
-                                            typeable={false}
-                                            onChange={(option) =>
-                                                handleFieldChange(
-                                                    "isAuraEnabled",
-                                                    option === "true"
-                                                )
-                                            }
-                                        />
+                                                <Tooltip content={(
+                                                    <div className="flex flex-col gap-2 tooltip-content bg-base-200 text-xs text-left border border-base-300 rounded shadow-2xl">
+                                                        <div><strong>Public:</strong> Everyone can post comments.</div>
+                                                        <div><strong>Followers:</strong> Users who follow you can post comments.</div>
+                                                        <div><strong>Friends:</strong> Friends on your list can post comments.</div>
+                                                        <div><strong>Private:</strong> Only you or collaborators can post comments.</div>
+                                                    </div>
+                                                )}>
+                                                    <span className="font-nerdfont text-sm"></span>
+                                                </Tooltip>
+                                            </label>
+
+                                            <TypeableDropdownInput
+                                                value={
+                                                    data.foundedDateVisibility.charAt(0).toUpperCase() + data.foundedDateVisibility.slice(1).toLowerCase()
+                                                }
+                                                options={[
+                                                    { id: "public", name: "Public" },
+                                                    { id: "followers", name: "Followers" },
+                                                    { id: "friends", name: "Friends" },
+                                                    { id: "private", name: "Private" },
+                                                ]}
+                                                placeholder="Select Option"
+                                                typeable={false}
+                                                onChange={(option) =>
+                                                    handleFieldChange(
+                                                        "foundedDateVisibility",
+                                                        option as VisibilityType
+                                                    )
+                                                }
+                                            />
+                                        </div>
                                     </div>
                                 </fieldset>
                             )}
 
                             {activeTab === "preview" && (
                                 <div className="md:hidden">
-                                    {/*<UserCard
+                                    <UserCard
                                         key={JSON.stringify(previewData)}
                                         data={previewData}
                                         isPreview={true}
-                                    />*/}
+                                    />
                                 </div>
                             )}
                         </div>
@@ -1295,11 +1494,11 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
 
                     <div className="hidden md:flex items-center justify-center min-h-[500px] h-full w-full p-4 overflow-hidden">
                         <div className="flex items-center justify-center w-full max-w-[340px]">
-                            {/*<UserCard
+                            <UserCard
                                 key={JSON.stringify(previewData)}
                                 data={previewData}
                                 isPreview={true}
-                            />*/}
+                            />
                         </div>
                     </div>
                 </div>
@@ -1308,7 +1507,7 @@ const EditUserProfileModal = forwardRef<EditUserProfileModalRef>((_, ref) => {
                     const hasChanges = Object.keys(getChangedData(data, initialData as GetUserItemType)).length > 0;
 
                     return (
-                        <div className="flex items-center gap-2 sm:gap-3 flex-row w-full mt-2 pt-4 z-10 shrink-0">
+                        <div className="flex items-center gap-2 sm:gap-3 flex-row w-full pt-4 z-10 shrink-0">
                             <button
                                 type="button"
                                 className="btn btn-neutral flex-1"
