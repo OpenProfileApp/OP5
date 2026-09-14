@@ -208,7 +208,7 @@ export default function getUsersService({
         ])
         : [];
 
-    const visibilityParams = [];
+    const visibilityParams: (string | undefined)[] = [];
 
     let visibilityCondition = "";
 
@@ -236,6 +236,15 @@ export default function getUsersService({
             (users.visibility = 'public') OR
             (users.visibility = 'registered' AND ? IS NOT NULL) OR
             (users.visibility = 'friends' AND users.areFriendRequestsEnabled = 1) OR
+            (
+                users.visibility = 'following' AND 
+                (
+                    follows.source IS NOT NULL OR 
+                    users.id = ? OR 
+                    ${hasDirectViewPermission ? '1 = 1' : '1 = 0'} OR
+                    ${hasDelegatedAccounts ? 'users.id IN (' + delegatedAccounts.map(() => '?').join(',') + ')' : '1 = 0'}
+                )
+            ) OR
             (users.visibility = 'unlisted' AND (${isUnlistedAllowed ? '1 = 1' : 'users.id = ?'})) OR
             (
                 users.visibility = 'private' AND 
@@ -248,13 +257,17 @@ export default function getUsersService({
         )`;
 
         visibilityParams.push(getAs);
+        visibilityParams.push(getAs);
+
+        if (hasDelegatedAccounts) {
+            visibilityParams.push(...delegatedAccounts);
+        }
 
         if (!isUnlistedAllowed) {
             visibilityParams.push(getAs);
         }
 
         visibilityParams.push(getAs);
-
         if (hasDelegatedAccounts) {
             visibilityParams.push(...delegatedAccounts);
         }
@@ -517,6 +530,8 @@ export default function getUsersService({
         const isMutualFriend = areFriendRequestsEnabled && Boolean(row.isFriendOut && row.isFriendIn);
         const isDelegated = Boolean(hasDelegatedAccounts && delegatedAccounts.includes(row.id as string));
         const hasFullAccess = isOwner || isDelegated || hasDirectViewPermission;
+        const parsedInteractions = parseJson(row.interactions);
+        const isFollowing = Boolean(parsedInteractions?.follows?.hasInteracted);
 
         let statistics = {
             followers: 0,
@@ -567,11 +582,26 @@ export default function getUsersService({
             }
         }
 
-        const canViewField = (visibilitySetting?: string) => {
-            if (!visibilitySetting || visibilitySetting === "public") return true;
-            if (visibilitySetting === "registered" && getAs) return true;
-            if (visibilitySetting === "friends" && (isMutualFriend || hasFullAccess)) return true;
-            if (visibilitySetting === "private" && hasFullAccess) return true;
+        const resolveVisibility = (fieldVisibility?: string): string => {
+            if (!fieldVisibility || fieldVisibility === "default") {
+                return (row.visibility as string) || "public";
+            }
+            return fieldVisibility;
+        };
+
+        const canViewField = (fieldVisibility?: string) => {
+            const effectiveVisibility = resolveVisibility(fieldVisibility);
+
+            if (effectiveVisibility === "public") return true;
+            if (effectiveVisibility === "registered" && getAs) return true;
+            if (
+                (effectiveVisibility === "followers" || effectiveVisibility === "following") &&
+                (isFollowing || isOwner || hasFullAccess)
+            ) {
+                return true;
+            }
+            if (effectiveVisibility === "friends" && (isMutualFriend || hasFullAccess)) return true;
+            if (effectiveVisibility === "private" && hasFullAccess) return true;
             return false;
         };
 
@@ -589,7 +619,7 @@ export default function getUsersService({
             collections: parseJson(row.collections),
             links: userLinks,
             flags: ExperimentsService.decode(row.flags as string),
-            interactions: parseJson(row.interactions),
+            interactions: parsedInteractions,
             isFriends: isMutualFriend,
             statistics,
             notifications: parseJson(row.notifications),
@@ -604,7 +634,13 @@ export default function getUsersService({
                 delete formattedRow.interactions.restricts.count;
             }
 
-            if (formattedRow.visibility === "friends" && !isMutualFriend && !hasFullAccess) {
+            const canViewProfile = hasFullAccess || 
+                formattedRow.visibility === "public" ||
+                (formattedRow.visibility === "registered" && Boolean(getAs)) ||
+                (formattedRow.visibility === "friends" && isMutualFriend) ||
+                (formattedRow.visibility === "following" && (isFollowing || isMutualFriend));
+                
+            if (!canViewProfile) {
                 delete formattedRow.collections;
                 delete formattedRow.status;
                 delete formattedRow.links;
@@ -614,8 +650,8 @@ export default function getUsersService({
                 delete formattedRow.about;
                 delete formattedRow.markdown;
                 delete formattedRow.pronouns;
-                delete formattedRow.birthdate;
-                delete formattedRow.birthdateVisibility;
+                delete formattedRow.birthDate;
+                delete formattedRow.birthDateVisibility;
                 delete formattedRow.foundedDate;
                 delete formattedRow.foundedDateVisibility;
                 delete formattedRow.flags;
@@ -625,9 +661,9 @@ export default function getUsersService({
                 delete formattedRow.isDeveloper;
                 delete formattedRow.createdDate;
             } else {
-                if (!canViewField(formattedRow.birthdateVisibility)) {
-                    delete formattedRow.birthdate;
-                    delete formattedRow.birthdateVisibility;
+                if (!canViewField(formattedRow.birthDateVisibility)) {
+                    delete formattedRow.birthDate;
+                    delete formattedRow.birthDateVisibility;
                 }
 
                 if (!canViewField(formattedRow.foundedDateVisibility)) {
