@@ -13,6 +13,7 @@ import { GetUserItemType } from "../../../_common/types/user.type.js";
 import CreateAssetModal from "../../_common/components/modals/CreateAssetModal.js";
 
 import { apiBaseUrl, authBaseUrl, cdnBaseUrl, studioBaseUrl } from "../../_common/scripts/domains.js";
+import { recommendedTags } from "../../_common/scripts/tags.js";
 
 type Props = {
     isBannerPage?: boolean;
@@ -291,18 +292,14 @@ export default function Navbar({ isBannerPage = false }: Props) {
                                     </summary>
 
                                     <ul className="bg-base-100 rounded-lg bg-alt border border-alt p-4 flex flex-col gap-4 w-50">
-                                        <Link className="link-hover" to="/browse/action">Action</Link>
-                                        <Link className="link-hover" to="/browse/adventure">Adventure</Link>
-                                        <Link className="link-hover" to="/browse/comedy">Comedy</Link>
-                                        <Link className="link-hover" to="/browse/crime">Crime</Link>
-                                        <Link className="link-hover" to="/browse/fantasy">Fantasy</Link>
-                                        <Link className="link-hover" to="/browse/historical">Historical</Link>
-                                        <Link className="link-hover" to="/browse/horror">Horror</Link>
-                                        <Link className="link-hover" to="/browse/mystery">Mystery</Link>
-                                        <Link className="link-hover" to="/browse/romance">Romance</Link>
-                                        <Link className="link-hover" to="/browse/sci-fi">Sci-Fi</Link>
-                                        <Link className="link-hover" to="/browse/sport">Sport</Link>
-                                        <Link className="link-hover" to="/browse/war">War</Link>
+                                        {recommendedTags.map((item) => (
+                                            <Link 
+                                                className="link-hover" 
+                                                to={`/browse/${item.tag}`}
+                                            >
+                                                {item.name}
+                                            </Link>
+                                        ))}
                                     </ul>
                                 </details>
                                 </li>
