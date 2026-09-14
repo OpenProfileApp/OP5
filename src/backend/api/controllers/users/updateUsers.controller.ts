@@ -21,16 +21,12 @@ const ALLOWED_VISIBILITIES = ["public", "unlisted", "registered", "followers", "
 const VALID_SEND_VISIBILITIES = ["default", "registered", "followers", "friends", "private"] as const;
 const VALID_TYPES = ["user", "author", "publisher"] as const;
 const VALID_PRESENCES = ["online", "idle", "dnd", "offline"] as const;
-const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const TAG_REGEX = /^[a-z-]+$/;
 
 export const updateUsers = async (req: Request, res: Response) => {
     try {
         const { userId } = req.params;
         const { data } = req.body;
-
-        // DEVELOPER NEEDED: Delete this later on
-        log.network.info(data).save();
 
         await assertBearer(req); 
         assertAccount(req.session);
@@ -52,14 +48,14 @@ export const updateUsers = async (req: Request, res: Response) => {
 
         const whatIsData = whatIs(userId);
 
-        const currentUserResult = db.users.query(
+        const currentresult = db.users.query(
             `SELECT * FROM users WHERE id = ?`,
             [userId]
         );
 
-        assertDbSuccess(currentUserResult);
+        assertDbSuccess(currentresult);
 
-        const currentUser = currentUserResult.rows?.[0];
+        const currentUser = currentresult.rows?.[0];
 
         if (!currentUser) {
             throw new AdvancedError({
@@ -79,8 +75,8 @@ export const updateUsers = async (req: Request, res: Response) => {
             "markdown",
             "tags",
             "pronouns",
-            "birthdate",
-            "birthdateVisibility",
+            "birthDate",
+            "birthDateVisibility",
             "foundedDate",
             "foundedDateVisibility",
             "location",
@@ -131,6 +127,7 @@ export const updateUsers = async (req: Request, res: Response) => {
         const values: unknown[] = [];
         let links: LinkType[] | undefined;
         let usernames: UsernameType[] | undefined;
+        let updatedPresence: string | undefined;
 
         // eslint-disable-next-line prefer-const
         for (let [key, value] of Object.entries(data)) {
@@ -235,6 +232,15 @@ export const updateUsers = async (req: Request, res: Response) => {
                 }
             }
 
+            if (key === "pronouns" || key === "location") {
+                if (typeof value !== "string" || value.length > 64) {
+                    throw new AdvancedError({
+                        code: 400,
+                        message: i18n.t("responses.invalidLength")
+                    });
+                }
+            }
+
             if (key === "status") {
                 if (typeof value !== "string" || value.length > 160) {
                     throw new AdvancedError({
@@ -324,16 +330,45 @@ export const updateUsers = async (req: Request, res: Response) => {
                 continue;
             }
 
-            if (key === "birthdate" || key === "foundedDate") {
-                if (value !== null && (typeof value !== "string" || !DATE_REGEX.test(value) || isNaN(Date.parse(value)))) {
-                    throw new AdvancedError({
-                        code: 400,
-                        message: i18n.t("responses.invalidDateFormat")
-                    });
+            if (key === "birthDate" || key === "foundedDate") {
+                if (value !== null) {
+                    const FLEXIBLE_DATE_REGEX = /^\d{4}(?:-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12]\d|3[01]))?)?$/;
+
+                    if (typeof value !== "string" || !FLEXIBLE_DATE_REGEX.test(value) || isNaN(Date.parse(value))) {
+                        throw new AdvancedError({
+                            code: 400,
+                            message: i18n.t("responses.invalidDateFormat")
+                        });
+                    }
+
+                    if (key === "birthDate") {
+                        const normalizedDateStr = value.length === 4 
+                            ? `${value}-01-01` 
+                            : value.length === 7 
+                                ? `${value}-01` 
+                                : value;
+
+                        const birthDate = new Date(normalizedDateStr);
+                        const today = new Date();
+
+                        let age = today.getFullYear() - birthDate.getFullYear();
+                        const monthDiff = today.getMonth() - birthDate.getMonth();
+
+                        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                            age--;
+                        }
+
+                        if (age < 13) {
+                            throw new AdvancedError({
+                                code: 400,
+                                message: i18n.t("responses.underage")
+                            });
+                        }
+                    }
                 }
             }
 
-            if (key === "birthdateVisibility" || key === "foundedDateVisibility") {
+            if (key === "birthDateVisibility" || key === "foundedDateVisibility") {
                 if (!VALID_VISIBILITIES.includes(value as typeof VALID_VISIBILITIES[number])) {
                     throw new AdvancedError({
                         code: 400,
@@ -349,6 +384,8 @@ export const updateUsers = async (req: Request, res: Response) => {
                         message: i18n.t("responses.invalidPresence")
                     });
                 }
+                
+                updatedPresence = value as string;
             }
 
             if (key === "visibility") {
@@ -401,11 +438,21 @@ export const updateUsers = async (req: Request, res: Response) => {
                     "isAuraEnabled"
                 ].includes(key)
             ) {
-                if (typeof value !== "boolean") {
+                if (typeof value !== "boolean" && typeof value !== "number") {
                     throw new AdvancedError({
                         code: 400,
                         message: i18n.t("responses.malformedRequest")
                     });
+                }
+
+                if (typeof value === "number") {
+                    if (value !== 0 && value !== 1) {
+                        throw new AdvancedError({
+                            code: 400,
+                            message: i18n.t("responses.malformedRequest")
+                        });
+                    }
+                    value = Boolean(value);
                 }
             }
 
@@ -422,11 +469,33 @@ export const updateUsers = async (req: Request, res: Response) => {
 
         if (updates.length > 0) {
             values.push(userId);
-            const userresult = db.users.query(
+
+            const result = db.users.query(
                 `UPDATE users SET ${updates.join(", ")} WHERE id = ?`,
                 values
             );
-            assertDbSuccess(userresult);
+
+            assertDbSuccess(result);
+
+            if (updatedPresence) {
+                await wc.callAPI(
+                    `https://${config.domains.main}/websocket`,
+                    {
+                        method: "POST",
+                        auth: `ApiSecret ${getEnv("API_SECRET")}`,
+                        body: {
+                            userId,
+                            data: {
+                                presence: {
+                                    id: userId,
+                                    presence: updatedPresence,
+                                    lastActive: currentUser.lastActive
+                                }
+                            }
+                        }
+                    }
+                );
+            }
         }
 
         if (usernames) {
