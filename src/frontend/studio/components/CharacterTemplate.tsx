@@ -31,63 +31,10 @@ import { CSS } from "@dnd-kit/utilities";
 import Metadata from "../../_common/components/Metadata.js";
 import TemplateField from "./TemplateField.js";
 import NewRowModal from "./modals/NewRowModal.js";
-import NewFieldModal from "./modals/NewFieldModal.js";
+import NewFieldModal, { NewFieldData } from "./modals/NewFieldModal.js";
 import { toast } from "../../_common/scripts/toast.js";
 import NewBlockModal from "./modals/NewBlockModal.js";
-
-export interface Field {
-    id: string;
-    type: string;
-    label?: string;
-    placeholder?: string;
-    guide?: string;
-    value?: string;
-    options?: string[];
-    thoughts?: string;
-    comments?: string;
-}
-
-export interface Row {
-    id: string;
-    type?: "field" | "media" | "split" | "timeline" | "calendar" | string;
-    fields: Field[];
-    [key: string]: unknown;
-}
-
-export interface Block {
-    id: string;
-    label: string;
-    description?: string;
-    type?: string;
-    icon?: string;
-    source?: "official" | "addon";
-    pinned?: boolean;
-    rows: Row[];
-    [key: string]: unknown;
-}
-
-export interface Category {
-    id: string;
-    label: string;
-    single?: string;
-    blocks: Block[];
-    [key: string]: unknown;
-}
-
-export interface NewBlockData {
-    id: string;
-    label: string;
-    description?: string;
-    icon?: string;
-    type?: string;
-    rows: string[];
-}
-
-export interface AddRowFormData {
-    id: string;
-    label?: string;
-    type: "field" | "media" | "split" | "timeline" | "calendar" | string;
-}
+import NewCategoryModal from "./modals/NewCategoryModal.js";
 
 export interface FieldDropZoneProps {
     id: string;
@@ -139,7 +86,7 @@ export function SortableItem({ id, children }: SortableItemProps) {
     const style: CSSProperties = {
         transform: CSS.Transform.toString(transform),
         transition,
-        opacity: isDragging ? 0.4 : 1,
+        opacity: isDragging ? 0.35 : 1,
         zIndex: isDragging ? 999 : "auto",
     };
 
@@ -193,6 +140,7 @@ export default function CharacterTemplate() {
     // Keep activeBlockId aligned with current Category
     useEffect(() => {
         if (!currentCategory || currentCategory.blocks.length === 0) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setActiveBlockId(null);
             return;
         }
@@ -329,6 +277,22 @@ export default function CharacterTemplate() {
         }
     };
 
+    const handleAddCategory = (data: { label: string; single?: string }): void => {
+        const newId = data.label.toLowerCase().replace(/\s+/g, "-") + "-" + Date.now();
+        
+        const newCategory: Category = {
+            id: newId,
+            label: data.label,
+            single: data.single || data.label,
+            blocks: [],
+        };
+
+        setTemplate((prev) => [newCategory, ...prev]);
+        
+        setActiveCategory(newId);
+        setActiveBlockId(null);
+    };
+
     const handleAddBlock = (data: NewBlockData): void => {
         setTemplate((prev: Category[]) =>
             prev.map((cat) => {
@@ -385,7 +349,7 @@ export default function CharacterTemplate() {
         );
     };
 
-    const handleAddField = (rowId: string, data: Field): void => {
+    const handleAddField = (rowId: string, data: NewFieldData): void => {
         if (!activeBlockId) return;
 
         const currentCat = template.find((c) => c.id === activeCategory);
@@ -415,7 +379,14 @@ export default function CharacterTemplate() {
                                     ...r,
                                     fields: [
                                         ...r.fields,
-                                        { id: data.id, label: data.label, type: data.type },
+                                        { 
+                                            id: data.id, 
+                                            label: data.label, 
+                                            type: data.type,
+                                            placeholder: data.placeholder,
+                                            value: data.value,
+                                            guide: data.guide
+                                        },
                                     ],
                                 };
                             }),
@@ -564,6 +535,7 @@ export default function CharacterTemplate() {
         <>
             <Metadata title="Development" allowIndex="false" />
 
+            <NewCategoryModal onAddCategory={handleAddCategory} />
             <NewRowModal onAddRow={handleAddRow} />
             <NewFieldModal targetRowId={targetRowId} onAddField={handleAddField} />
 
@@ -1026,7 +998,15 @@ export default function CharacterTemplate() {
                                             </SortableItem>
                                         ))}
 
-                                        <button className="btn btn-accent text-2xl w-full mt-2">+</button>
+                                        <button 
+                                            className="btn btn-accent text-2xl w-full mt-2"
+                                            onClick={() => {
+                                                const modal = document.getElementById("new-category") as HTMLDialogElement | null;
+                                                modal?.showModal();
+                                            }}
+                                        >
+                                            +
+                                        </button>
                                     </ul>
                                 </SortableContext>
                             </div>
