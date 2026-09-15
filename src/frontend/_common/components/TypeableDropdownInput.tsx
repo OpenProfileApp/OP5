@@ -1,16 +1,19 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { CheckboxInput } from "./CheckboxInput.js";
 
-export type DropdownOption = string | { id: string | number; name: string };
+export type DropdownOptionValue = string | number;
+export type DropdownOption = DropdownOptionValue | { id: DropdownOptionValue; name: string };
 
 interface TypeableDropdownInputProps {
-    value?: string | number;
+    value?: DropdownOptionValue | DropdownOptionValue[];
     options?: DropdownOption[] | Record<string, string>;
     placeholder?: string;
     typeable?: boolean;
+    multiple?: boolean;
     title?: string;
-    defaultOpenAbove?: boolean; // Controls whether to default opening direction to top
-    onChange?: (idOrValue: string | number) => void;
+    defaultOpenAbove?: boolean;
+    onChange?: (value: unknown) => void;
     onFocus?: () => void;
     onBlur?: () => void;
     onContextMenu?: (e: React.MouseEvent) => void;
@@ -21,6 +24,7 @@ export const TypeableDropdownInput: React.FC<TypeableDropdownInputProps> = ({
     options = [],
     placeholder,
     typeable = true,
+    multiple = false,
     title,
     defaultOpenAbove = false,
     onChange,
@@ -30,7 +34,7 @@ export const TypeableDropdownInput: React.FC<TypeableDropdownInputProps> = ({
 }) => {
     const { t, ready: isTranslationReady } = useTranslation();
 
-    const normalizedOptions: { id: string | number; name: string }[] = useMemo(() => {
+    const normalizedOptions: { id: DropdownOptionValue; name: string }[] = useMemo(() => {
         if (Array.isArray(options)) {
             return options.map((opt) =>
                 typeof opt === "object" && opt !== null ? opt : { id: opt, name: String(opt) }
@@ -44,8 +48,15 @@ export const TypeableDropdownInput: React.FC<TypeableDropdownInputProps> = ({
         return [];
     }, [options]);
 
+    const selectedValues = useMemo<DropdownOptionValue[]>(() => {
+        if (multiple) {
+            return Array.isArray(value) ? value : value !== "" && value !== undefined ? [value] : [];
+        }
+        return [];
+    }, [value, multiple]);
+
     const getDisplayName = useCallback(
-        (val: string | number) => {
+        (val: DropdownOptionValue) => {
             const matched = normalizedOptions.find((opt) => opt.id === val || opt.name === val);
             return matched ? matched.name : String(val || "");
         },
@@ -55,8 +66,8 @@ export const TypeableDropdownInput: React.FC<TypeableDropdownInputProps> = ({
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [openAbove, setOpenAbove] = useState<boolean>(defaultOpenAbove);
     const [isMobile, setIsMobile] = useState<boolean>(false);
-    const [searchTerm, setSearchTerm] = useState<string>(() => getDisplayName(value));
-    const [prevValue, setPrevValue] = useState<string | number>(value);
+    const [searchTerm, setSearchTerm] = useState<string>(() => (multiple ? "" : getDisplayName(value as DropdownOptionValue)));
+    const [prevValue, setPrevValue] = useState<DropdownOptionValue | DropdownOptionValue[]>(value);
     const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
 
     const containerRef = useRef<HTMLDivElement>(null);
@@ -65,7 +76,9 @@ export const TypeableDropdownInput: React.FC<TypeableDropdownInputProps> = ({
 
     if (value !== prevValue) {
         setPrevValue(value);
-        setSearchTerm(getDisplayName(value));
+        if (!multiple) {
+            setSearchTerm(getDisplayName(value as DropdownOptionValue));
+        }
     }
 
     useEffect(() => {
@@ -133,19 +146,37 @@ export const TypeableDropdownInput: React.FC<TypeableDropdownInputProps> = ({
 
     if (!isTranslationReady) return null;
 
-    const resolvedTitle = title ?? t("components.dropdown.selectOption");
-    const resolvedPlaceholder = placeholder ?? t("components.dropdown.selectOrType");
+    const resolvedTitle = title ?? t("components.dropdown.selectOption", "Select Option");
+    const resolvedPlaceholder = placeholder ?? t("components.dropdown.selectOrType", "Select or type...");
 
     const handleClose = () => {
         setIsOpen(false);
         setHighlightedIndex(-1);
+        if (multiple) setSearchTerm("");
         onBlur?.();
     };
 
-    const handleSelectOption = (opt: { id: string | number; name: string }) => {
-        setSearchTerm(opt.name);
-        onChange?.(opt.id);
-        handleClose();
+    const handleSelectOption = (opt: { id: DropdownOptionValue; name: string }) => {
+        if (multiple) {
+            const exists = selectedValues.includes(opt.id);
+            const next = exists
+                ? selectedValues.filter((v) => v !== opt.id)
+                : [...selectedValues, opt.id];
+            onChange?.(next);
+            setSearchTerm("");
+        } else {
+            setSearchTerm(opt.name);
+            onChange?.(opt.id);
+            handleClose();
+        }
+    };
+
+    const handleRemoveBadge = (valToRemove: DropdownOptionValue, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (multiple) {
+            const next = selectedValues.filter((v) => v !== valToRemove);
+            onChange?.(next);
+        }
     };
 
     const handleToggleMenu = () => {
@@ -206,7 +237,9 @@ export const TypeableDropdownInput: React.FC<TypeableDropdownInputProps> = ({
         const newVal = e.target.value;
         setSearchTerm(newVal);
         setHighlightedIndex(-1);
-        onChange?.(newVal);
+        if (!multiple) {
+            onChange?.(newVal);
+        }
         setIsOpen(true);
     };
 
@@ -217,36 +250,54 @@ export const TypeableDropdownInput: React.FC<TypeableDropdownInputProps> = ({
             onMouseLeave={() => setHighlightedIndex(-1)}
             className={
                 isMobile
-                    ? "flex scrollbar flex-col w-full h-full min-h-0 overflow-y-auto py-1 text-sm space-y-1"
-                    : `flex flex-col absolute z-99999 w-full max-h-80 overflow-y-auto rounded-md bg-base-200 border border-base-300 shadow-2xl py-1 text-sm focus:outline-none ${
+                    ? "flex scrollbar flex-col w-full h-full min-h-0 overflow-y-auto text-sm"
+                    : `flex flex-col absolute z-99999 w-full max-h-80 overflow-y-auto rounded-md bg-base-200 border border-base-300 shadow-2xl text-sm focus:outline-none ${
                           openAbove ? "bottom-full mb-1" : "top-full mt-1"
                       }`
             }
         >
             {filteredOptions.length === 0 ? (
-                <li className="px-4 py-3 text-sm text-sub w-full text-left">
+                <li className="flex items-center px-4 h-10 min-h-10 text-sm text-sub w-full text-left">
                     No matching options
                 </li>
             ) : (
                 filteredOptions.map((opt, i) => {
                     const isHighlighted = i === highlightedIndex;
-                    const isSelected = opt.name === searchTerm || opt.id === value;
+                    const isSelected = multiple
+                        ? selectedValues.includes(opt.id)
+                        : opt.name === searchTerm || opt.id === value;
 
                     return (
                         <li
                             key={opt.id}
                             role="option"
                             aria-selected={isSelected}
-                            className={`flex items-center w-full px-4 py-3 text-sm cursor-pointer transition-colors ${
-                                isHighlighted || isSelected ? "bg-base-300" : ""
-                            }`}
+                            className="flex items-center w-full h-10 min-h-10 text-sm shrink-0"
                             onMouseEnter={() => setHighlightedIndex(i)}
-                            onMouseDown={(e) => {
-                                e.preventDefault();
-                                handleSelectOption(opt);
-                            }}
                         >
-                            <span className="truncate w-full text-left">{opt.name}</span>
+                            {multiple ? (
+                                <div className="w-full h-10 min-h-10 flex items-center">
+                                    <CheckboxInput
+                                        label={opt.name}
+                                        checked={isSelected ? 1 : 0}
+                                        onChange={() => handleSelectOption(opt)}
+                                        selected={isSelected || isHighlighted}
+                                        isDropdownOption={true}
+                                    />
+                                </div>
+                            ) : (
+                                <div
+                                    className={`w-full h-10 min-h-10 px-4 flex items-center cursor-pointer transition-colors ${
+                                        isHighlighted || isSelected ? "bg-base-300" : ""
+                                    }`}
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        handleSelectOption(opt);
+                                    }}
+                                >
+                                    <span className="truncate">{opt.name}</span>
+                                </div>
+                            )}
                         </li>
                     );
                 })
@@ -261,31 +312,56 @@ export const TypeableDropdownInput: React.FC<TypeableDropdownInputProps> = ({
             onContextMenu={onContextMenu}
         >
             <div className="relative w-full flex flex-col">
-                <input
-                    ref={inputRef}
-                    type="text"
-                    readOnly={!typeable}
-                    value={searchTerm}
-                    placeholder={resolvedPlaceholder}
-                    className={`input input-bordered bg-base-100 border border-base-300 w-full min-h-10 h-10 text-sm pr-10 focus:outline-none ${
-                        !typeable ? "cursor-pointer select-none caret-transparent" : ""
+                <div
+                    className={`input input-bordered bg-base-100 border border-base-300 w-full min-h-10 h-auto py-1.5 pl-3 pr-10 text-sm flex flex-wrap items-center gap-1.5 focus-within:outline-none ${
+                        !typeable ? "cursor-pointer select-none" : ""
                     }`}
-                    onChange={handleInputChange}
-                    onFocus={onFocus}
                     onClick={() => {
                         if (!typeable) {
                             handleToggleMenu();
                         } else {
                             setIsOpen(true);
+                            inputRef.current?.focus();
                         }
                     }}
-                    onKeyDown={handleKeyDown}
-                />
+                >
+                    {multiple &&
+                        selectedValues.map((val) => (
+                            <span
+                                key={val}
+                                className="flex gap-1.5 px-2 py-1 bg-base-200 text-xs text-left border border-base-300 rounded items-center"
+                            >
+                                {getDisplayName(val)}
+
+                                <button
+                                    type="button"
+                                    className="cursor-pointer text-error text-xs font-nerdfont leading-none"
+                                    onClick={(e) => handleRemoveBadge(val, e)}
+                                >
+                                    
+                                </button>
+                            </span>
+                        ))}
+
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        readOnly={!typeable}
+                        value={searchTerm}
+                        placeholder={selectedValues.length > 0 ? "" : resolvedPlaceholder}
+                        className={`bg-transparent outline-none flex-1 min-w-[60px] text-sm ${
+                            !typeable ? "cursor-pointer select-none caret-transparent" : ""
+                        }`}
+                        onChange={handleInputChange}
+                        onFocus={onFocus}
+                        onKeyDown={handleKeyDown}
+                    />
+                </div>
 
                 <button
                     type="button"
                     onClick={handleToggleMenu}
-                    className="absolute inset-y-0 right-0 flex items-center justify-center px-3 text-sub transition-colors cursor-pointer"
+                    className="absolute right-0 top-0 h-10 flex items-center justify-center px-3 text-sub transition-colors cursor-pointer"
                 >
                     <span
                         className={`font-nerdfont flex items-center justify-center text-sm leading-none h-4 w-4 transition-transform duration-200 ${

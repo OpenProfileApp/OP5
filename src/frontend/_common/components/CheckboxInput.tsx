@@ -6,6 +6,8 @@ interface Props {
     onChange: (checked: 1 | 0) => void;
     disabled?: boolean;
     className?: string;
+    selected?: boolean;
+    isDropdownOption?: boolean;
 }
 
 export const CheckboxInput: React.FC<Props> = ({
@@ -14,16 +16,18 @@ export const CheckboxInput: React.FC<Props> = ({
     onChange,
     disabled = false,
     className = "",
+    selected = false,
+    isDropdownOption = false
 }) => {
     const isChecked = checked === true || checked === 1 || checked === "true";
 
     return (
         <label
             className={`
-                flex items-center gap-2 w-full px-3 mt-1 h-10 bg-base-100 border border-base-300 rounded transition-colors 
-                ${disabled 
-                    ? "text-[#636363] cursor-not-allowed" 
-                    : "cursor-pointer"} 
+                flex items-center gap-2 w-full px-3 h-10 transition-colors 
+                ${!isDropdownOption ? "rounded border border-base-300" : ""}
+                ${selected ? "bg-base-200" : "bg-base-100"}
+                ${disabled ? "text-[#636363] cursor-not-allowed" : "cursor-pointer"} 
                 ${className}
             `}
         >
@@ -37,7 +41,7 @@ export const CheckboxInput: React.FC<Props> = ({
                 onChange={(e) => onChange(e.target.checked ? 1 : 0)}
             />
 
-            <span className="text-sm">
+            <span className="text-sm flex-1 truncate">
                 {label}
             </span>
         </label>
