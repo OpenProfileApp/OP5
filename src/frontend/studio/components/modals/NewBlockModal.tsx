@@ -644,7 +644,7 @@ export default function NewBlockModal({ onAddBlock, initialCategory }: NewBlockM
                                             <span className="font-nerdfont leading-none text-sm mr-2">
                                                 󱔗
                                             </span>
-                                            <span className="text-xs">Used in {item.uses} template{item.uses !== 1 ? "s" : ""}</span>
+                                            <span className="text-xs">Added to {item.uses} template{item.uses !== 1 ? "s" : ""}</span>
                                         </div>
                                     </div>
                                 </button>
